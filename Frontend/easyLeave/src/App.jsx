@@ -1,8 +1,8 @@
 import './App.css'
 import LeavePage from './components/TeacherPanel/LeavePage'
 import TeacherDashboard from './components/TeacherPanel/TeacherDashboard'
-import Login from './components/Loginsignup/Login'
-import Signup from './components/Loginsignup/Signup'
+import AdminLogin from './components/Loginsignup/AdminLogin'
+import EmployeeLogin from './components/Loginsignup/EmployeeLogin'
 import AdminDashboard from './components/AdminPanel/AdminDashboard'
 import {BrowserRouter as Router,Routes,Route} from "react-router-dom"
 function App() {
@@ -10,8 +10,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login/>} />
-        <Route path="/Signup" element={<Signup/>} />
+        <Route path="/" element={<EmployeeLogin/>} />
+        <Route path="/Signup" element={<AdminLogin/>} />
         <Route path='/TeacherDashboard'  element = {<TeacherDashboard/>} />
         <Route path='/AdminDashboard' element = {<AdminDashboard/>}/>
       </Routes>
