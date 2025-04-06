@@ -7,6 +7,7 @@ import { IoIosLogOut } from "react-icons/io";
 import { useState } from 'react';
 import { CiSettings } from "react-icons/ci";
 import { CiUser } from "react-icons/ci";
+import { CgProfile } from "react-icons/cg";
 
 const menuItems = [
 {
@@ -23,7 +24,7 @@ const menuItems = [
     },
     {
         icons:<CiSettings color='white' size={23}/>,
-        label:'Setting'
+        label:'Settings'
     }
 ]
 
@@ -45,7 +46,7 @@ const TeacherDashboard = () => {
             {
                 menuItems.map((item,index) => {
                     return(
-                        <li key={index} class = "px-3 py-2 my-6 hover:bg-blue-500 rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group " >
+                        <li key={index} class = "px-3 py-2 my-6 hover:bg-blue-700 rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group " >
                             <div>
                                 {item.icons}
                             </div>
@@ -70,9 +71,30 @@ const TeacherDashboard = () => {
         </ul>
 
         {/* footer */}
-        <div class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-500 rounded-md " >
+        
+        <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-700 rounded-md group relative" >
+                <CgProfile color='white' size={23} />
+                <p className={`${!open && "w-0 translate-x-24 "} duration-500 overflow-hidden text-white `} >
+                    Akansha
+                </p>
+                <p className={` ${open && 'hidden'} absolute left-32 shadow-md  rounded-md 
+                            w-0 p-0 duration-230 overflow-hidden
+                            group-hover:w-fit bg-blue-100 group-hover:left-18 group-hover:p-2 `} >
+                    Akansha
+                </p>
+        </div>
+
+
+        <div class="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-700 rounded-md group relative" >
             <IoIosLogOut  color='white' size={23}/>
-            <p class = {`${!open && "w-0 translate-x-24"} duration-500 overflow-hidden text-white  `} >logout</p>
+        <p class = {`${!open && "w-0 translate-x-24 "} duration-500 overflow-hidden text-white `} >
+        logout    
+         </p>
+         <p class = {` ${open && 'hidden'} absolute left-32 shadow-md  rounded-md 
+                            w-0 p-0 duration-230 overflow-hidden
+                            group-hover:w-fit bg-blue-100 group-hover:left-18 group-hover:p-2 `} >
+                            logout   
+                            </p>        
         </div>
 
     </nav>

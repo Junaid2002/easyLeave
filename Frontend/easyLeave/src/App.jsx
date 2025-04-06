@@ -1,5 +1,4 @@
 import './App.css'
-import LeavePage from './components/TeacherPanel/LeavePage'
 import TeacherDashboard from './components/TeacherPanel/TeacherDashboard'
 import AdminLogin from './components/Loginsignup/AdminLogin'
 import EmployeeLogin from './components/Loginsignup/EmployeeLogin'
