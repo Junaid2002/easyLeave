@@ -1,16 +1,14 @@
-const mongoose = require('mongoose')
+import mongoose from "mongoose";
 
-const connectDB = async ()=>{
-    try {
-        await mongoose.connect(process.env.MONGO_URI,{
-            useNewUrlParser:true,
-            useUnifiedTopology:true,
-        });
-        console.log("Database Connected !!")
-    } catch (err) {
-        console.error(err.message);
-        process.exit(1);
-    }
+export const connection = ()=>{
+    mongoose
+    .connect(URI,{
+        dbName:"MERN_AUTHENTICATION",
+    })
+    .then(()=>{
+        console.log("Connected to database !! ");
+    })
+    .catch((err) => {
+        console.log(`Some error occured while connecting to database ${err}`);
+    });
 };
-
-module.exports = connectDB;
