@@ -32,11 +32,6 @@ function App() {
   ]);
 
   return (
-<<<<<<< HEAD
-    <div>
-      <RouterProvider router={router} />
-    </div>
-=======
     <Router>
       <Routes>
         <Route path="/" element={<EmployeeLogin/>} />
@@ -46,7 +41,6 @@ function App() {
         <Route path='/Register' element = {<EmployeeRegister/>}/>
       </Routes>
     </Router>
->>>>>>> 592377c67086e961694890933e8f662cc8981c1f
   )
 }
 

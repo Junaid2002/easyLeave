@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { MdMenuOpen, MdOutlineDashboard, MdCurrencyRupee } from "react-icons/md";
 import { IoIosLogOut } from "react-icons/io";
 import { CiSettings, CiUser } from "react-icons/ci";
@@ -26,21 +27,42 @@ const TeacherDashboard = () => {
         setSelectedItem(label);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const newLeave = {
             from: leaveFromDate,
             to: oneDay ? leaveFromDate : leaveToDate,
             reason: leaveReason,
-            oneDay: oneDay
+            oneDay
         };
-        setLeaves([...leaves, newLeave]);
-        alert(`Leave Submitted from ${newLeave.from} to ${newLeave.to}\nReason: ${leaveReason}`);
+
+        try {
+            const res = await axios.post('http://localhost:5000/api/leaves', newLeave);
+            setLeaves([res.data.leave, ...leaves]);
+            alert('Leave submitted successfully!');
+        } catch (error) {
+            console.error('Error submitting leave:', error);
+            alert('Failed to submit leave.');
+        }
+
         setLeaveFromDate('');
         setLeaveToDate('');
         setLeaveReason('');
         setOneDay(false);
     };
+
+    useEffect(() => {
+        const fetchLeaves = async () => {
+            try {
+                const res = await axios.get('http://localhost:5000/api/leaves');
+                setLeaves(res.data);
+            } catch (error) {
+                console.error('Error fetching leaves:', error);
+            }
+        };
+
+        fetchLeaves();
+    }, []);
 
     return (
         <div className="flex h-screen">
@@ -48,12 +70,9 @@ const TeacherDashboard = () => {
             <nav className={`shadow-md duration-500 ${open ? "w-60" : "w-18"} p-2 flex flex-col bg-blue-900`}>
                 <div className="px-3 py-2 h-20 flex justify-between items-center">
                     <img src="aju.jpg" alt="logo" className={`${open ? "w-10" : "w-0"} rounded-md`} />
-                    <div>
-                        <MdMenuOpen size={32} color='white' className="cursor-pointer" onClick={() => setOpen(!open)} />
-                    </div>
+                    <MdMenuOpen size={32} color='white' className="cursor-pointer" onClick={() => setOpen(!open)} />
                 </div>
 
-                {/* Menu Items */}
                 <ul className="flex-1">
                     {menuItems.map((item, index) => (
                         <li key={index}
@@ -70,7 +89,6 @@ const TeacherDashboard = () => {
                     ))}
                 </ul>
 
-                {/* Footer */}
                 <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-700 rounded-md group relative">
                     <CgProfile color='white' size={23} />
                     <p className={`${!open && "w-0 translate-x-24 "} duration-500 overflow-hidden text-white`}>Akansha</p>
@@ -95,11 +113,7 @@ const TeacherDashboard = () => {
                                 <ul className="space-y-3">
                                     {leaves.map((leave, index) => (
                                         <li key={index} className="bg-gray-100 p-4 rounded-lg">
-                                            <strong>Leave Dates:</strong>{" "}
-                                            {leave.oneDay
-                                                ? leave.from
-                                                : `${leave.from} to ${leave.to}`}
-                                            <br />
+                                            <strong>Leave Dates:</strong> {leave.oneDay ? leave.from : `${leave.from} to ${leave.to}`}<br />
                                             <strong>Reason:</strong> {leave.reason}
                                         </li>
                                     ))}
@@ -172,18 +186,6 @@ const TeacherDashboard = () => {
                                 Submit Leave
                             </button>
                         </form>
-                    </div>
-                )}
-
-                {selectedItem === "Salary" && (
-                    <div className="bg-white shadow-xl p-8 rounded-xl max-w-3xl mx-auto">
-                        <h2 className="text-3xl font-bold text-blue-900 mb-6">Salary Details</h2>
-                        <div className="space-y-4 text-lg">
-                            <div><strong>Month:</strong> March 2025</div>
-                            <div><strong>Total Salary:</strong> ₹45,000</div>
-                            <div><strong>Status:</strong> Paid ✅</div>
-                            <div><strong>Payment Date:</strong> 5th April 2025</div>
-                        </div>
                     </div>
                 )}
             </main>

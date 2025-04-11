@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './db/connection.js';
 import registerRoutes from './Routes/registerRoutes.js';
+import leaveRoutes from './Routes/leaveRoutes.js';
 
 dotenv.config();
 
@@ -10,18 +11,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
-  console.log(' Database connected successfully.');
+  console.log('Database connected successfully.');
 });
 
 app.use(cors());
 app.use(express.json());
 
 app.use('/api/registers', registerRoutes);
+app.use('/api/leaves', leaveRoutes);
 
 app.get('/ping', (req, res) => {
   res.send('PONG');
 });
 
 app.listen(PORT, () => {
-  console.log(` Server is running at http://localhost:${PORT}`);
+  console.log(`Server is running at http://localhost:${PORT}`);
 });
