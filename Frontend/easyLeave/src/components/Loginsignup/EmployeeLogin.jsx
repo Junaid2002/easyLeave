@@ -1,40 +1,45 @@
-import React from 'react';
-import { Link,Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
 
 const EmployeeLogin = () => {
-  const [email,setemail] = useState('')
-  const [password,setpassword] = useState('')
-  const [error,setError] = useState('')
-  const [isLoggedIn,setIsLoggedIn] = useState(false)
+  const [email, setemail] = useState('');
+  const [password, setpassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    if(email === 'akansha@gmail.com' && password === '121212'){
-      setIsLoggedIn(true);
-      setError('');
+    try {
+      const response = await fetch('http://localhost:5000/api/registers/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLoggedIn(true);
+        setError('');
+      } else {
+        setError(data.message || 'Login failed.');
+      }
+    } catch {
+      setError('Server error. Please try again later.');
     }
-    else
-    {
-      setError('Invalid email or password. Please try again.');
-    }
-  }
+  };
 
-  if(isLoggedIn){
-    return <Navigate to='/TeacherDashboard'/>;
+  if (isLoggedIn) {
+    return <Navigate to="/TeacherDashboard" />;
   }
-
 
   return (
     <div className="flex flex-row h-screen items-center justify-center w-full flex-1 px-20 text-center bg-white-500">
       <div className="bg-white rounded-2xl shadow-2xl flex w-2/3 max-w-4xl">
-        {/* Left Side - Employee Login Form */}
         <div className="w-3/5 p-5 flex flex-col items-center gap-6">
           <h1 className="text-3xl font-bold text-blue-900 my-10">Employee Login</h1>
 
-          {/* Email Input */}
           <div className="relative">
             <input
               type="email"
@@ -53,7 +58,6 @@ const EmployeeLogin = () => {
             </label>
           </div>
 
-          {/* Password Input */}
           <div className="relative">
             <input
               type="password"
@@ -74,16 +78,21 @@ const EmployeeLogin = () => {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          {/* Login Button */}
           <button
             onClick={handleLogin}
             className="border-1 border-blue-900 text-blue-900 rounded-full px-12 py-2 mt-4 inline-block hover:bg-blue-900 hover:text-white duration-300 font-semibold"
           >
             Login
           </button>
+
+          <Link
+            to="/Register"
+            className="border-1 border-blue-900 text-blue-900 rounded-full px-12 py-2 mt-2 inline-block hover:bg-blue-900 hover:text-white duration-300 font-semibold"
+          >
+            Register
+          </Link>
         </div>
 
-        {/* Right Side - Admin Login Section */}
         <div className="w-2/5 p-5 bg-blue-900 text-white rounded-tr-2xl rounded-br-2xl py-36 px-12 flex flex-col items-center">
           <h2 className="text-3xl font-bold">Admin ?</h2>
           <div className="border-1 w-15 border-white inline-block mb-2 mt-2"></div>

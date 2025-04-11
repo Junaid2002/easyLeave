@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import UserModel from "../Models/User.js";
 import dotenv from 'dotenv';
 
-dotenv.config(); // Initialize dotenv
+dotenv.config(); 
 
 export const signup = async (req, res) => {
     try {
