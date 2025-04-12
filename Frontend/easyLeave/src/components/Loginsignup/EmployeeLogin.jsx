@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 
 const EmployeeLogin = () => {
-  const [email, setemail] = useState('');
-  const [password, setpassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -20,12 +20,14 @@ const EmployeeLogin = () => {
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem('userEmail', email);
         setIsLoggedIn(true);
         setError('');
       } else {
         setError(data.message || 'Login failed.');
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setError('Server error. Please try again later.');
     }
   };
@@ -46,8 +48,8 @@ const EmployeeLogin = () => {
               required
               id="mail"
               value={email}
-              onChange={(e) => setemail(e.target.value)}
-              className="w-80 h-2 m-2 bg-transparent py-3.5 border-b-1 focus:outline-none focus:border-blue-500 focus:border-b-2 transition-colors peer duration-500"
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-80 h-12 m-2 bg-transparent py-3.5 border-b-1 focus:outline-none focus:border-blue-500 focus:border-b-2 transition-colors peer duration-500"
               placeholder=" "
             />
             <label
@@ -63,9 +65,9 @@ const EmployeeLogin = () => {
               type="password"
               required
               value={password}
-              onChange={(e) => setpassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               id="pass"
-              className="w-80 h-2 m-2 bg-transparent py-3.5 border-b-1 focus:outline-none focus:border-blue-500 focus:border-b-2 transition-colors peer duration-500"
+              className="w-80 h-12 m-2 bg-transparent py-3.5 border-b-1 focus:outline-none focus:border-blue-500 focus:border-b-2 transition-colors peer duration-500"
               placeholder=" "
             />
             <label
@@ -79,6 +81,7 @@ const EmployeeLogin = () => {
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
+            type="submit"
             onClick={handleLogin}
             className="border-1 border-blue-900 text-blue-900 rounded-full px-12 py-2 mt-4 inline-block hover:bg-blue-900 hover:text-white duration-300 font-semibold"
           >

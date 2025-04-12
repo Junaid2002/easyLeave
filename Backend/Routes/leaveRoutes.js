@@ -1,9 +1,9 @@
 import express from 'express';
-import { submitLeave, getLeaves } from '../Controllers/leaveController.js';
+import { createLeave, getLeavesByEmail } from '../Controllers/leaveController.js';
 
 const router = express.Router();
 
-router.post('/', submitLeave);
-router.get('/', getLeaves);
+router.post('/', createLeave);
+router.get('/', getLeavesByEmail);
 
 export default router;

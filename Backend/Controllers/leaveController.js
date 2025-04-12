@@ -1,21 +1,34 @@
 import Leave from '../Models/leave.js';
 
-export const submitLeave = async (req, res) => {
-  const { from, to, reason, oneDay } = req.body;
+export const createLeave = async (req, res) => {
+  const { email, from, to, reason, oneDay } = req.body;
+
+  if (!email || !from || !reason) {
+    return res.status(400).json({ message: 'Email, from date, and reason are required' });
+  }
+
   try {
-    const leave = new Leave({ from, to, reason, oneDay });
+    const leave = new Leave({ email, from, to, reason, oneDay });
     await leave.save();
-    res.status(201).json({ message: 'Leave submitted successfully', leave });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(201).json({ message: 'Leave created successfully', leave });
+  } catch (error) {
+    console.error('Error creating leave:', error);
+    res.status(500).json({ message: 'Failed to create leave' });
   }
 };
 
-export const getLeaves = async (req, res) => {
+export const getLeavesByEmail = async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
   try {
-    const leaves = await Leave.find().sort({ createdAt: -1 });
-    res.json(leaves);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const leaves = await Leave.find({ email }).sort({ createdAt: -1 });
+    res.status(200).json(leaves);
+  } catch (error) {
+    console.error('Error fetching leaves:', error);
+    res.status(500).json({ message: 'Failed to fetch leaves' });
   }
 };
