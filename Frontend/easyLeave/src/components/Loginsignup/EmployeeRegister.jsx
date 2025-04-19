@@ -22,7 +22,7 @@ const EmployeeRegister = () => {
       });
 
       if (response.ok) {
-        setSuccess('🎉 Registration Completed!');
+        setSuccess(' Registration Completed!');
         setError('');
         setName('');
         setEmail('');

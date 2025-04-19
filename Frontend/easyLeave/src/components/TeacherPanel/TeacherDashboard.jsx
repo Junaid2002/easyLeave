@@ -23,7 +23,7 @@ const TeacherDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [oneDay, setOneDay] = useState(false);
 
-  const userEmail = localStorage.getItem("userEmail") || "";
+  const userEmail = localStorage.getItem("userEmail") || "akanchha@example.com";
 
   const handleItemClick = (label) => setSelectedItem(label);
 
@@ -56,16 +56,13 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     const fetchLeaves = async () => {
-      console.log('Fetching leaves for userEmail:', userEmail);
       if (!userEmail) {
         setLeaves([]);
-        console.log('No userEmail, setting leaves to empty array');
         return;
       }
       try {
         const res = await axios.get(`http://localhost:5000/api/leaves?email=${encodeURIComponent(userEmail)}`);
         setLeaves(res.data || []);
-        console.log('Fetched leaves:', res.data);
       } catch (error) {
         console.error('Error fetching leaves:', error);
         setLeaves([]);
@@ -111,6 +108,7 @@ const TeacherDashboard = () => {
           <p className={`${!open && "w-0 translate-x-24"} duration-500 overflow-hidden text-white`}>Logout</p>
         </div>
       </nav>
+
       <main className="flex-1 p-10 bg-gray-100 overflow-auto">
         {selectedItem === "Dashboard" && (
           <div>
@@ -132,6 +130,7 @@ const TeacherDashboard = () => {
             </div>
           </div>
         )}
+
         {selectedItem === "Leave Application" && (
           <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold mb-6 text-blue-900">Leave Application</h2>
@@ -189,6 +188,71 @@ const TeacherDashboard = () => {
                 Submit Leave
               </button>
             </form>
+          </div>
+        )}
+
+        {selectedItem === "Salary" && (
+          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold mb-6 text-blue-900">Salary Details</h2>
+            <div className="space-y-4 text-lg text-gray-700">
+              <div className="flex justify-between border-b pb-2">
+                <span>Basic Pay:</span>
+                <span>₹30,000</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span>HRA:</span>
+                <span>₹10,000</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span>Allowances:</span>
+                <span>₹5,000</span>
+              </div>
+              <div className="flex justify-between border-b pb-2 font-semibold">
+                <span>Total:</span>
+                <span>₹45,000</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Month:</span>
+                <span>April 2025</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedItem === "Profile" && (
+          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold mb-6 text-blue-900">Profile</h2>
+            <div className="space-y-4 text-lg text-gray-700">
+              <div><strong>Name:</strong> Akansha Kumari</div>
+              <div><strong>Email:</strong> {userEmail}</div>
+              <div><strong>Position:</strong> Assistant Professor</div>
+              <div><strong>Department:</strong> Computer Science</div>
+              <div><strong>Phone:</strong> +91 9334558897</div>
+            </div>
+          </div>
+        )}
+
+        {selectedItem === "Settings" && (
+          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold mb-6 text-blue-900">Settings</h2>
+            <div className="space-y-6 text-gray-700 text-lg">
+              <div>
+                <label className="block font-semibold mb-2">Change Password</label>
+                <input type="password" placeholder="New Password" className="w-full border p-3 rounded-md" />
+              </div>
+              <div>
+                <label className="block font-semibold mb-2">Notification Settings</label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" /> Email Notifications
+                </label>
+                <label className="flex items-center gap-3">
+                  <input type="checkbox" /> SMS Notifications
+                </label>
+              </div>
+              <button className="bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">
+                Save Settings
+              </button>
+            </div>
           </div>
         )}
       </main>
