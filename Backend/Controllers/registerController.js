@@ -1,52 +1,66 @@
-import Register from '../Models/register.js';
+import User from '../Models/User.js';
+import bcrypt from 'bcryptjs';
 
-export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required.' });
-  }
-
+// Register a new user
+const registerUser = async (req, res) => {
+  const { name, email, password, position, department, phone } = req.body;
   try {
-    const existingUser = await Register.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ message: 'Email already registered.' });
+      return res.status(400).json({ message: 'Email already registered' });
     }
-
-    const newUser = new Register({ name, email, password });
-    await newUser.save();
-
-    res.status(201).json({ message: 'User registered successfully.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error. Please try again later.' });
-  }
-};
-
-export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required.' });
-  }
-
-  try {
-    const user = await Register.findOne({ email });
-
-    if (!user || user.password !== password) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
-    }
-
-    res.status(200).json({
-      message: 'Login successful',
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      position: position || 'N/A',
+      department: department || 'N/A',
+      phone: phone || 'N/A'
     });
-  } catch (err) {
-    console.error(err);
+    await user.save();
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Error registering user:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+// Login a user
+const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+    res.json({ message: 'Login successful', user: { email: user.email, name: user.name } });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Get user details by email
+const getUserByEmail = async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+  try {
+    const user = await User.findOne({ email }).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export { registerUser, loginUser, getUserByEmail };

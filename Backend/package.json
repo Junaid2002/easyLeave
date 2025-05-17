@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "easyLeave-backend",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
@@ -11,19 +11,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "bcryptjs": "^3.0.2",
-    "cookie-parser": "^1.4.7",
+    "express": "^4.17.1",
+    "mongoose": "^6.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "joi": "^17.13.3",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.2",
-    "multer": "^1.4.5-lts.2",
-    "nodemailer": "^6.10.0",
-    "nodemon": "^3.1.9",
-    "path": "^0.12.7",
-    "twilio": "^5.5.1"
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.0.0",
+    "nodemon": "^3.1.4"
   }
 }

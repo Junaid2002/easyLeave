@@ -17,6 +17,22 @@ const registerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+    position: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    department: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
   { timestamps: true }
 );

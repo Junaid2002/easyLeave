@@ -7,21 +7,22 @@ import { CgProfile } from "react-icons/cg";
 import { FaRegCalendarCheck } from "react-icons/fa";
 
 const menuItems = [
-  { icons: <MdOutlineDashboard color='white' size={23} />, label: 'Dashboard' },
-  { icons: <CiUser color='white' size={23} />, label: 'Profile' },
-  { icons: <MdCurrencyRupee color='white' size={23} />, label: 'Salary' },
-  { icons: <FaRegCalendarCheck color='white' size={23} />, label: 'Leave Application' },
-  { icons: <CiSettings color='white' size={23} />, label: 'Settings' }
+  { icons: <MdOutlineDashboard size={23} />, label: 'Dashboard' },
+  { icons: <CiUser size={23} />, label: 'Profile' },
+  { icons: <MdCurrencyRupee size={23} />, label: 'Salary' },
+  { icons: <FaRegCalendarCheck size={23} />, label: 'Leave Application' },
+  { icons: <CiSettings size={23} />, label: 'Settings' }
 ];
 
 const TeacherDashboard = () => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [selectedItem, setSelectedItem] = useState('Dashboard');
   const [leaveFromDate, setLeaveFromDate] = useState('');
   const [leaveToDate, setLeaveToDate] = useState('');
   const [leaveReason, setLeaveReason] = useState('');
   const [leaves, setLeaves] = useState([]);
   const [oneDay, setOneDay] = useState(false);
+  const [userDetails, setUserDetails] = useState(null);
 
   const userEmail = localStorage.getItem("userEmail") || "akanchha@example.com";
 
@@ -29,10 +30,7 @@ const TeacherDashboard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userEmail) {
-      alert('Please log in to submit a leave.');
-      return;
-    }
+    if (!userEmail) return alert('Please log in to submit a leave.');
     const newLeave = {
       from: leaveFromDate,
       to: oneDay ? leaveFromDate : leaveToDate,
@@ -56,10 +54,7 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     const fetchLeaves = async () => {
-      if (!userEmail) {
-        setLeaves([]);
-        return;
-      }
+      if (!userEmail) return setLeaves([]);
       try {
         const res = await axios.get(`http://localhost:5000/api/leaves?email=${encodeURIComponent(userEmail)}`);
         setLeaves(res.data || []);
@@ -71,56 +66,71 @@ const TeacherDashboard = () => {
     fetchLeaves();
   }, [userEmail]);
 
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      if (!userEmail) return setUserDetails(null);
+      try {
+        const res = await axios.get(`http://localhost:5000/api/users?email=${encodeURIComponent(userEmail)}`);
+        setUserDetails(res.data || null);
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        setUserDetails(null);
+      }
+    };
+    fetchUserDetails();
+  }, [userEmail]);
+
   return (
-    <div className="flex h-screen">
-      <nav className={`shadow-md duration-500 ${open ? "w-60" : "w-18"} p-2 flex flex-col bg-blue-900`}>
-        <div className="px-3 py-2 h-20 flex justify-between items-center">
-          <img src="aju.jpg" alt="logo" className={`${open ? "w-10" : "w-0"} rounded-md`} />
-          <MdMenuOpen size={32} color='white' className="cursor-pointer" onClick={() => setOpen(!open)} />
+    <div className="flex h-screen overflow-hidden">
+      <nav className={`transition-all duration-500 ${open ? "w-60" : "w-16"} bg-blue-900 flex flex-col`}>
+        <div className="flex items-center justify-between p-4 h-20">
+          <img src="aju.jpg" alt="logo" className={`transition-all duration-300 ${open ? "w-10" : "w-0"} overflow-hidden rounded-md`} />
+          <MdMenuOpen size={28} color="white" onClick={() => setOpen(!open)} className="cursor-pointer ml-auto" />
         </div>
-        <ul className="flex-1">
-          {menuItems.map((item, index) => (
-            <li key={index}
+        <ul className="flex-1 space-y-2 mt-4">
+          {menuItems.map((item, idx) => (
+            <li
+              key={idx}
               onClick={() => handleItemClick(item.label)}
-              className="px-3 py-2 my-6 hover:bg-blue-700 rounded-md duration-300 cursor-pointer flex gap-2 items-center relative group">
+              className="flex items-center gap-3 text-white px-4 py-3 hover:bg-blue-700 transition-all relative"
+            >
               <div>{item.icons}</div>
-              <p className={`${!open && "w-0 translate-x-24"} duration-500 overflow-hidden text-white`}>
+              <span className={`whitespace-nowrap transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 hidden md:inline-block"}`}>
                 {item.label}
-              </p>
-              <p className={`${open && 'hidden'} absolute left-32 shadow-md rounded-md w-0 p-0 duration-300 overflow-hidden group-hover:w-fit group-hover:left-18 group-hover:p-2 bg-blue-100`}>
-                {item.label}
-              </p>
+              </span>
             </li>
           ))}
         </ul>
-        <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-700 rounded-md group relative">
-          <CgProfile color='white' size={23} />
-          <p className={`${!open && "w-0 translate-x-24"} duration-500 overflow-hidden text-white`}>Akansha</p>
+        <div className="px-4 py-3 text-white flex items-center gap-3">
+          <CgProfile size={23} />
+          <span className={`transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 hidden md:inline-block"}`}>
+            {userDetails ? userDetails.name : 'User'}
+          </span>
         </div>
         <div
-          className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-700 rounded-md group relative"
+          className="px-4 py-3 text-white flex items-center gap-3 cursor-pointer hover:bg-blue-700"
           onClick={() => {
             localStorage.removeItem("userEmail");
             window.location.href = "/login";
           }}
         >
-          <IoIosLogOut color='white' size={23} />
-          <p className={`${!open && "w-0 translate-x-24"} duration-500 overflow-hidden text-white`}>Logout</p>
+          <IoIosLogOut size={23} />
+          <span className={`transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 hidden md:inline-block"}`}>Logout</span>
         </div>
       </nav>
 
-      <main className="flex-1 p-10 bg-gray-100 overflow-auto">
+      <main className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6 lg:p-10">
         {selectedItem === "Dashboard" && (
           <div>
-            <h2 className="text-3xl font-bold text-blue-900 mb-6">Dashboard Overview</h2>
+            <h2 className="text-2xl font-bold text-blue-900 mb-4">Dashboard Overview</h2>
             <div className="bg-white p-6 rounded-xl shadow-md">
-              <h3 className="text-xl font-semibold mb-4 text-blue-800">Leave Applications Summary</h3>
+              <h3 className="text-xl font-semibold text-blue-800 mb-4">Leave Applications Summary</h3>
               {leaves.length === 0 ? (
                 <p className="text-gray-500">No leave applications submitted yet.</p>
               ) : (
                 <ul className="space-y-3">
-                  {leaves.map((leave, index) => (
-                    <li key={index} className="bg-gray-100 p-4 rounded-lg">
+                  {leaves.map((leave, idx) => (
+                    <li key={idx} className="bg-gray-100 p-4 rounded-lg">
                       <strong>Leave Dates:</strong> {leave.oneDay ? leave.from : `${leave.from} to ${leave.to}`}<br />
                       <strong>Reason:</strong> {leave.reason}
                     </li>
@@ -132,14 +142,14 @@ const TeacherDashboard = () => {
         )}
 
         {selectedItem === "Leave Application" && (
-          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 text-blue-900">Leave Application</h2>
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white shadow-2xl p-6 rounded-xl w-full max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-blue-900">Leave Application</h2>
+            <div className="space-y-6">
               <div>
-                <label className="block mb-2 font-semibold text-lg text-gray-700">Leave From</label>
+                <label className="block mb-2 font-semibold">Leave From</label>
                 <input
                   type="date"
-                  className="w-full border border-gray-300 rounded-lg p-3 text-lg"
+                  className="w-full border border-gray-300 rounded-lg p-3"
                   value={leaveFromDate}
                   onChange={(e) => {
                     setLeaveFromDate(e.target.value);
@@ -149,10 +159,10 @@ const TeacherDashboard = () => {
                 />
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-lg text-gray-700">Leave To</label>
+                <label className="block mb-2 font-semibold">Leave To</label>
                 <input
                   type="date"
-                  className="w-full border border-gray-300 rounded-lg p-3 text-lg"
+                  className="w-full border border-gray-300 rounded-lg p-3"
                   value={leaveToDate}
                   onChange={(e) => setLeaveToDate(e.target.value)}
                   disabled={oneDay}
@@ -169,12 +179,12 @@ const TeacherDashboard = () => {
                     if (e.target.checked) setLeaveToDate(leaveFromDate);
                   }}
                 />
-                <label htmlFor="oneDay" className="text-gray-700 text-md">One Day Leave</label>
+                <label htmlFor="oneDay" className="text-gray-700">One Day Leave</label>
               </div>
               <div>
-                <label className="block mb-2 font-semibold text-lg text-gray-700">Reason for Leave</label>
+                <label className="block mb-2 font-semibold">Reason for Leave</label>
                 <textarea
-                  className="w-full border border-gray-300 rounded-lg p-4 h-40 resize-none text-lg"
+                  className="w-full border border-gray-300 rounded-lg p-4 h-32 resize-none"
                   placeholder="Type your reason for leave here..."
                   value={leaveReason}
                   onChange={(e) => setLeaveReason(e.target.value)}
@@ -182,76 +192,60 @@ const TeacherDashboard = () => {
                 ></textarea>
               </div>
               <button
-                type="submit"
-                className="bg-blue-900 text-white px-6 py-3 rounded-lg text-lg hover:bg-blue-800 transition-all"
+                type="button"
+                onClick={handleSubmit}
+                className="bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-800"
               >
                 Submit Leave
               </button>
-            </form>
+            </div>
           </div>
         )}
 
         {selectedItem === "Salary" && (
-          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-4xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 text-blue-900">Salary Details</h2>
-            <div className="space-y-4 text-lg text-gray-700">
-              <div className="flex justify-between border-b pb-2">
-                <span>Basic Pay:</span>
-                <span>₹30,000</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span>HRA:</span>
-                <span>₹10,000</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span>Allowances:</span>
-                <span>₹5,000</span>
-              </div>
-              <div className="flex justify-between border-b pb-2 font-semibold">
-                <span>Total:</span>
-                <span>₹45,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Month:</span>
-                <span>April 2025</span>
-              </div>
+          <div className="bg-white shadow-2xl p-6 rounded-xl w-full max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-blue-900">Salary Details</h2>
+            <div className="space-y-4 text-gray-700">
+              <div className="flex justify-between border-b pb-2"><span>Basic Pay:</span><span>₹30,000</span></div>
+              <div className="flex justify-between border-b pb-2"><span>HRA:</span><span>₹10,000</span></div>
+              <div className="flex justify-between border-b pb-2"><span>Allowances:</span><span>₹5,000</span></div>
+              <div className="flex justify-between border-b pb-2 font-semibold"><span>Total:</span><span>₹45,000</span></div>
+              <div className="flex justify-between"><span>Month:</span><span>April 2025</span></div>
             </div>
           </div>
         )}
 
         {selectedItem === "Profile" && (
-          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 text-blue-900">Profile</h2>
-            <div className="space-y-4 text-lg text-gray-700">
-              <div><strong>Name:</strong> Akansha Kumari</div>
-              <div><strong>Email:</strong> {userEmail}</div>
-              <div><strong>Position:</strong> Assistant Professor</div>
-              <div><strong>Department:</strong> Computer Science</div>
-              <div><strong>Phone:</strong> +91 9334558897</div>
-            </div>
+          <div className="bg-white shadow-2xl p-6 rounded-xl w-full max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-blue-900">Profile</h2>
+            {userDetails ? (
+              <div className="space-y-4 text-gray-700">
+                <div><strong>Name:</strong> {userDetails.name}</div>
+                <div><strong>Email:</strong> {userDetails.email}</div>
+                <div><strong>Position:</strong> {userDetails.position || 'N/A'}</div>
+                <div><strong>Department:</strong> {userDetails.department || 'N/A'}</div>
+                <div><strong>Phone:</strong> {userDetails.phone || 'N/A'}</div>
+              </div>
+            ) : (
+              <p className="text-gray-500">Loading profile details...</p>
+            )}
           </div>
         )}
 
         {selectedItem === "Settings" && (
-          <div className="bg-white shadow-2xl p-10 rounded-xl w-full max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold mb-6 text-blue-900">Settings</h2>
-            <div className="space-y-6 text-gray-700 text-lg">
+          <div className="bg-white shadow-2xl p-6 rounded-xl w-full max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-blue-900">Settings</h2>
+            <div className="space-y-6 text-gray-700">
               <div>
                 <label className="block font-semibold mb-2">Change Password</label>
                 <input type="password" placeholder="New Password" className="w-full border p-3 rounded-md" />
               </div>
               <div>
                 <label className="block font-semibold mb-2">Notification Settings</label>
-                <label className="flex items-center gap-3">
-                  <input type="checkbox" /> Email Notifications
-                </label>
-                <label className="flex items-center gap-3">
-                  <input type="checkbox" /> SMS Notifications
-                </label>
+                <label className="flex items-center gap-3"><input type="checkbox" /> Email Notifications</label>
+                <label className="flex items-center gap-3"><input type="checkbox" /> SMS Notifications</label>
               </div>
-              <button className="bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-800 transition">
-                Save Settings
-              </button>
+              <button className="bg-blue-900 text-white px-6 py-3 rounded-lg hover:bg-blue-800">Save Settings</button>
             </div>
           </div>
         )}
