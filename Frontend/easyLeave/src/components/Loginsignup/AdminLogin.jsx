@@ -8,7 +8,7 @@ const AdminLogin = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleLogin = () => {
-    if (email === 'saqulain0027@gmail.com' && password === '@27khaN$') {
+    if (email === 'junaid@gmail.com' && password === 'Ayan@2002') {
       setIsLoggedIn(true);
       setError('');
     } else {

@@ -9,25 +9,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 function App() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <Router>
       <Routes>
         <Route path="/" element={<EmployeeLogin />} />
         <Route path="/Signup" element={<AdminLogin />} />
         <Route path="/TeacherDashboard" element={<TeacherDashboard />} />
-        <Route
-          path="/AdminDashboard"
-          element={
-            <div>
-              <AdminDashboard />
-              <DashboardPage />
-            </div>
-          }
-        />
+        <Route path="/AdminDashboard" element={<AdminDashboard />} />
         <Route path="/Register" element={<EmployeeRegister />} />
       </Routes>
     </Router>

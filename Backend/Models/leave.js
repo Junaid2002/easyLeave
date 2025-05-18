@@ -10,7 +10,18 @@ const leaveSchema = new mongoose.Schema({
   from: { type: String, required: true },
   to: { type: String, required: false },
   reason: { type: String, required: true },
-  oneDay: { type: Boolean, default: false }
+  oneDay: { type: Boolean, default: false },
+
+  status: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Declined'],
+    default: 'Pending'
+  },
+
+  declineReason: {
+    type: String,
+    default: ""
+  }
 }, {
   timestamps: true
 });

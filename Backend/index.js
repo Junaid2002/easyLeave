@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
-app.use('/api', registerRoutes); 
+app.use('/api', registerRoutes);
 app.use('/api/leaves', leaveRoutes);
 
 app.get('/ping', (req, res) => {
