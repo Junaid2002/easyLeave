@@ -59,7 +59,6 @@ const TeacherDashboard = () => {
 
   const userEmail = localStorage.getItem("userEmail") || "akanchha@example.com";
 
-  // Toggle theme and save to localStorage
   useEffect(() => {
     const html = document.documentElement;
     if (theme === 'dark') {
@@ -70,7 +69,6 @@ const TeacherDashboard = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Apply accent color dynamically
   useEffect(() => {
     const root = document.documentElement;
     if (accentColor === 'blue') {
