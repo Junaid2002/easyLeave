@@ -5,6 +5,7 @@ import { IoIosLogOut } from "react-icons/io";
 import { CiSettings, CiUser } from "react-icons/ci";
 import { CgProfile } from "react-icons/cg";
 import { FaRegCalendarCheck } from "react-icons/fa";
+import { BsSun, BsMoon } from "react-icons/bs";
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
@@ -53,8 +54,34 @@ const TeacherDashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'blue');
 
   const userEmail = localStorage.getItem("userEmail") || "akanchha@example.com";
+
+  // Toggle theme and save to localStorage
+  useEffect(() => {
+    const html = document.documentElement;
+    if (theme === 'dark') {
+      html.classList.add('dark');
+    } else {
+      html.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // Apply accent color dynamically
+  useEffect(() => {
+    const root = document.documentElement;
+    if (accentColor === 'blue') {
+      root.style.setProperty('--accent-color', '#1e3a8a');
+    } else if (accentColor === 'green') {
+      root.style.setProperty('--accent-color', '#15803d');
+    } else if (accentColor === 'purple') {
+      root.style.setProperty('--accent-color', '#6b21a8');
+    }
+    localStorage.setItem('accentColor', accentColor);
+  }, [accentColor]);
 
   const handleItemClick = (label) => setSelectedItem(label);
 
@@ -148,7 +175,7 @@ const TeacherDashboard = () => {
   return (
     <div className="flex h-screen overflow-hidden">
       <motion.nav
-        className={`transition-all duration-500 ${open ? "w-60" : "w-16"} bg-blue-900 flex flex-col`}
+        className={`transition-all duration-500 ${open ? "w-60" : "w-16"} bg-[var(--accent-color)] dark:bg-gray-800 flex flex-col`}
         initial={{ width: 60 }}
         animate={{ width: open ? 240 : 60 }}
         transition={{ duration: 0.5 }}
@@ -161,19 +188,29 @@ const TeacherDashboard = () => {
             initial={{ width: 0 }}
             animate={{ width: open ? 40 : 0 }}
           />
-          <MdMenuOpen
-            size={28}
-            color="white"
-            onClick={() => setOpen(!open)}
-            className="cursor-pointer ml-auto"
-          />
+          <div className="flex items-center gap-2">
+            <motion.button
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="text-white hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700 p-2 rounded"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              {theme === 'light' ? <BsMoon size={20} /> : <BsSun size={20} />}
+            </motion.button>
+            <MdMenuOpen
+              size={28}
+              color="white"
+              onClick={() => setOpen(!open)}
+              className="cursor-pointer"
+            />
+          </div>
         </div>
         <ul className="flex-1 space-y-2 mt-4">
           {menuItems.map((item, idx) => (
             <motion.li
               key={idx}
               onClick={() => handleItemClick(item.label)}
-              className="flex items-center gap-3 text-white px-4 py-3 hover:bg-blue-700 cursor-pointer"
+              className="flex items-center gap-3 text-white px-4 py-3 hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700 cursor-pointer"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -199,7 +236,7 @@ const TeacherDashboard = () => {
           </motion.span>
         </div>
         <motion.div
-          className="px-4 py-3 text-white flex items-center gap-3 cursor-pointer hover:bg-blue-700"
+          className="px-4 py-3 text-white flex items-center gap-3 cursor-pointer hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700"
           onClick={() => {
             localStorage.removeItem("userEmail");
             window.location.href = "/";
@@ -219,7 +256,7 @@ const TeacherDashboard = () => {
       </motion.nav>
 
       <motion.main
-        className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6 lg:p-10"
+        className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 lg:p-10 transition-colors duration-300"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -233,35 +270,35 @@ const TeacherDashboard = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <h2 className="text-2xl font-bold text-blue-900 mb-4">{isAdmin ? 'Admin Dashboard' : 'Leave Summary'}</h2>
+              <h2 className="text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">{isAdmin ? 'Admin Dashboard' : 'Leave Summary'}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <motion.div
-                  className="bg-white p-4 rounded-lg shadow-md text-center"
+                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <h3 className="text-lg font-semibold">Pending</h3>
+                  <h3 className="text-lg font-semibold dark:text-gray-200">Pending</h3>
                   <p className="text-2xl text-orange-500">{stats.pending}</p>
                 </motion.div>
                 <motion.div
-                  className="bg-white p-4 rounded-lg shadow-md text-center"
+merzen          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <h3 className="text-lg font-semibold">Approved</h3>
+                  <h3 className="text-lg font-semibold dark:text-gray-200">Approved</h3>
                   <p className="text-2xl text-green-500">{stats.approved}</p>
                 </motion.div>
                 <motion.div
-                  className="bg-white p-4 rounded-lg shadow-md text-center"
+                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <h3 className="text-lg font-semibold">Rejected</h3>
+                  <h3 className="text-lg font-semibold dark:text-gray-200">Rejected</h3>
                   <p className="text-2xl text-red-500">{stats.rejected}</p>
                 </motion.div>
               </div>
               <motion.div
-                className="bg-white p-6 rounded-lg shadow-md mb-6"
+                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
                 whileHover={{ scale: 1.02 }}
               >
-                <h3 className="text-lg font-semibold mb-4">Leave Trends</h3>
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Trends</h3>
                 <PieChart width={400} height={300}>
                   <Pie
                     data={pieData}
@@ -281,10 +318,10 @@ const TeacherDashboard = () => {
                 </PieChart>
               </motion.div>
               <motion.div
-                className="bg-white p-6 rounded-lg shadow-md"
+                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md"
                 whileHover={{ scale: 1.02 }}
               >
-                <h3 className="text-lg font-semibold mb-4">Upcoming Leaves</h3>
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Upcoming Leaves</h3>
                 <Calendar
                   localizer={localizer}
                   events={calendarEvents}
@@ -292,38 +329,39 @@ const TeacherDashboard = () => {
                   endAccessor="end"
                   style={{ height: 500 }}
                   onSelectEvent={(event) => alert(`Leave: ${event.title}`)}
+                  className="dark:bg-gray-800 dark:text-gray-200"
                 />
               </motion.div>
               {isAdmin && (
                 <motion.div
-                  className="bg-white p-6 rounded-lg shadow-md mt-6"
+                  className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6"
                   whileHover={{ scale: 1.02 }}
                 >
-                  <h3 className="text-lg font-semibold mb-4">All Leave Requests</h3>
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">All Leave Requests</h3>
                   {leaves.length === 0 ? (
-                    <p>No leave applications submitted yet.</p>
+                    <p className="dark:text-gray-200">No leave applications submitted yet.</p>
                   ) : (
                     <ul className="space-y-3">
                       {leaves.map((leave, idx) => (
                         <motion.li
                           key={idx}
-                          className="bg-gray-100 p-4 rounded-lg flex justify-between items-center"
+                          className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex justify-between items-center"
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: idx * 0.1 }}
                         >
                           <div>
-                            <div><strong>Email:</strong> {leave.email}</div>
-                            <div><strong>Dates:</strong> {leave.oneDay ? leave.from : `${leave.from} to ${leave.to}`}</div>
-                            <div><strong>Reason:</strong> {leave.reason}</div>
+                            <div className="dark:text-gray-200"><strong>Email:</strong> {leave.email}</div>
+                            <div className="dark:text-gray-200"><strong>Dates:</strong> {leave.oneDay ? leave.from : `${leave.from} to ${leave.to}`}</div>
+                            <div className="dark:text-gray-200"><strong>Reason:</strong> {leave.reason}</div>
                           </div>
                           <div className="flex items-center gap-2">
                             <StatusDot status={leave.status} />
-                            <span className="capitalize font-medium">{leave.status}</span>
+                            <span className="capitalize font-medium dark:text-gray-200">{leave.status}</span>
                             <select
                               value={leave.status}
                               onChange={(e) => handleStatusUpdate(leave._id, e.target.value)}
-                              className="ml-2 p-1 border rounded"
+                              className="ml-2 p-1 border rounded dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500"
                             >
                               <option value="Pending">Pending</option>
                               <option value="Approved">Approve</option>
@@ -342,17 +380,17 @@ const TeacherDashboard = () => {
           {selectedItem === "Leave Application" && (
             <motion.div
               key="leave"
-              className="bg-white p-6 rounded-xl shadow-md w-full max-w-4xl mx-auto"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md w-full max-w-4xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-2xl font-bold mb-6 text-blue-900">Apply for Leave</h2>
+              <h2 className="text-2xl font-bold mb-6 text-[var(--accent-color)] dark:text-gray-100">Apply for Leave</h2>
               <div className="space-y-6">
                 <div>
-                  <label className="block mb-1 font-semibold">Leave From:</label>
+                  <label className="block mb-1 font-semibold dark:text-gray-200">Leave From:</label>
                   <input
                     type="date"
                     value={leaveFromDate}
@@ -360,18 +398,18 @@ const TeacherDashboard = () => {
                       setLeaveFromDate(e.target.value);
                       if (oneDay) setLeaveToDate(e.target.value);
                     }}
-                    className="w-full p-3 border rounded-md"
+                    className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold">Leave To:</label>
+                  <label className="block mb-1 font-semibold dark:text-gray-200">Leave To:</label>
                   <input
                     type="date"
                     value={leaveToDate}
                     onChange={(e) => setLeaveToDate(e.target.value)}
                     disabled={oneDay}
-                    className="w-full p-3 border rounded-md"
+                    className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     required={!oneDay}
                   />
                 </div>
@@ -384,22 +422,23 @@ const TeacherDashboard = () => {
                       setOneDay(e.target.checked);
                       if (e.target.checked) setLeaveToDate(leaveFromDate);
                     }}
+                    className="dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <label htmlFor="oneDay">One Day Leave</label>
+                  <label htmlFor="oneDay" className="dark:text-gray-200">One Day Leave</label>
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold">Reason:</label>
+                  <label className="block mb-1 font-semibold dark:text-gray-200">Reason:</label>
                   <textarea
                     value={leaveReason}
                     onChange={(e) => setLeaveReason(e.target.value)}
-                    className="w-full p-3 border rounded-md"
+                    className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     rows="4"
                     required
                   />
                 </div>
                 <motion.button
                   onClick={handleSubmit}
-                  className="bg-blue-900 text-white px-6 py-3 rounded-md hover:bg-blue-800"
+                  className="bg-[var(--accent-color)] text-white px-6 py-3 rounded-md hover:bg-[var(--accent-color)]/80 dark:bg-gray-700 dark:hover:bg-gray-600"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -412,15 +451,15 @@ const TeacherDashboard = () => {
           {selectedItem === "Salary" && (
             <motion.div
               key="salary"
-              className="bg-white p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-2xl font-bold mb-4 text-blue-900">Salary Details</h2>
-              <div className="space-y-3">
+              <h2 className="text-2xl font-bold mb-4 text-[var(--accent-color)] dark:text-gray-100">Salary Details</h2>
+              <div className="space-y-3 dark:text-gray-200">
                 <div className="flex justify-between"><span>Basic Pay:</span><span>₹30,000</span></div>
                 <div className="flex justify-between"><span>HRA:</span><span>₹10,000</span></div>
                 <div className="flex justify-between"><span>Allowances:</span><span>₹5,000</span></div>
@@ -433,16 +472,16 @@ const TeacherDashboard = () => {
           {selectedItem === "Profile" && (
             <motion.div
               key="profile"
-              className="bg-white p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-2xl font-bold mb-4 text-blue-900">Profile</h2>
+              <h2 className="text-2xl font-bold mb-4 text-[var(--accent-color)] dark:text-gray-100">Profile</h2>
               {userDetails ? (
-                <div className="space-y-3">
+                <div className="space-y-3 dark:text-gray-200">
                   <div><strong>Name:</strong> {userDetails.name}</div>
                   <div><strong>Email:</strong> {userDetails.email}</div>
                   <div><strong>Position:</strong> {userDetails.position || "N/A"}</div>
@@ -450,7 +489,7 @@ const TeacherDashboard = () => {
                   <div><strong>Phone:</strong> {userDetails.phone || "N/A"}</div>
                 </div>
               ) : (
-                <p>Loading profile...</p>
+                <p className="dark:text-gray-200">Loading profile...</p>
               )}
             </motion.div>
           )}
@@ -458,16 +497,27 @@ const TeacherDashboard = () => {
           {selectedItem === "Settings" && (
             <motion.div
               key="settings"
-              className="bg-white p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
               whileHover={{ scale: 1.02 }}
             >
-              <h2 className="text-2xl font-bold mb-4 text-blue-900">Settings</h2>
-              <div>
-                <p>Settings content goes here...</p>
+              <h2 className="text-2xl font-bold mb-4 text-[var(--accent-color)] dark:text-gray-100">Settings</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block mb-1 font-semibold dark:text-gray-200">Theme Color:</label>
+                  <select
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                  >
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="purple">Purple</option>
+                  </select>
+                </div>
               </div>
             </motion.div>
           )}
