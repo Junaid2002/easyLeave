@@ -1,29 +1,74 @@
 import mongoose from 'mongoose';
 
-const leaveSchema = new mongoose.Schema({
-  email: { 
-    type: String, 
-    required: true,
-    trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
+const leaveSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      required: [true, 'Email is required'],
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+    },
+    from: {
+      type: Date,
+      required: [true, 'From date is required'],
+      validate: {
+        validator: function (value) {
+          return value >= new Date().setHours(0, 0, 0, 0);
+        },
+        message: 'From date cannot be in the past',
+      },
+    },
+    to: {
+      type: Date,
+      required: [
+        function () {
+          return !this.oneDay;
+        },
+        'To date is required for multi-day leaves',
+      ],
+    },
+    reason: {
+      type: String,
+      required: [true, 'Reason is required'],
+      trim: true,
+    },
+    oneDay: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: {
+        values: ['Pending', 'Approved', 'Declined'],
+        message: '{VALUE} is not a valid status',
+      },
+      default: 'Pending',
+      set: (value) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(),
+    },
+    declineReason: {
+      type: String,
+      default: '',
+      trim: true,
+    },
   },
-  from: { type: String, required: true },
-  to: { type: String, required: false },
-  reason: { type: String, required: true },
-  oneDay: { type: Boolean, default: false },
-  status: {
-    type: String,
-    enum: ['Pending', 'Approved', 'Declined'],
-    default: 'Pending'
-  },
-  declineReason: {
-    type: String,
-    default: ""
+  {
+    timestamps: true,
+    toJSON: { virtuals: false, versionKey: false },
   }
-}, {
-  timestamps: true
+);
+
+leaveSchema.pre('validate', function (next) {
+  if (!this.oneDay && this.to && this.from && this.to < this.from) {
+    this.invalidate('to', 'To date must be after From date');
+  }
+  if (this.oneDay && !this.to) {
+    this.to = this.from;
+  }
+  next();
 });
 
 leaveSchema.index({ email: 1 });
-
-export default mongoose.model('Leave', leaveSchema);
+leaveSchema.index({ status: 1 });
+leaveSchema.index({ createdAt: -1 });
+leaveSchema.index({ email: 1, status: 1 });
+export default mongoose.models.Leave || mongoose.model('Leave', leaveSchema);

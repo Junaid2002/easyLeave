@@ -29,8 +29,10 @@ const AdminDashboard = () => {
   const [approvedLeaves, setApprovedLeaves] = useState([]);
   const [leavePatterns, setLeavePatterns] = useState([]);
   const [employeeStats, setEmployeeStats] = useState([]);
+  const [pendingSalaryRequests, setPendingSalaryRequests] = useState([]); 
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
-  const [leaveStats, setLeaveStats] = useState({ approved: 0, rejected: 0 });
+  const [leaveStats, setLeaveStats] = useState({ approved: 0, declined: 0 });
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,25 +48,29 @@ const AdminDashboard = () => {
   const fetchPendingLeaves = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/leaves/pending");
-      setPendingLeaves(res.data);
+      setPendingLeaves(Array.isArray(res.data) ? res.data : []);
+      setError(null);
     } catch (err) {
-      console.error("Error fetching leaves:", err);
+      console.error("Error fetching pending leaves:", err);
+      setError("Failed to fetch pending leaves. Please try again.");
     }
   };
 
   const fetchApprovedLeaves = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/leaves/approved");
-      setApprovedLeaves(res.data);
+      setApprovedLeaves(Array.isArray(res.data) ? res.data : []);
+      setError(null);
     } catch (err) {
       console.error("Error fetching approved leaves:", err);
+      setError("Failed to fetch approved leaves. Please try again.");
     }
   };
 
   const fetchAllLeavePatterns = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/leaves");
-      const allLeaves = res.data || [];
+      const allLeaves = Array.isArray(res.data) ? res.data : [];
       const uniqueEmails = [...new Set(allLeaves.map(leave => leave.email))];
       
       const patternsPromises = uniqueEmails.map(email =>
@@ -78,40 +84,34 @@ const AdminDashboard = () => {
       }));
       
       patternsResponses.forEach(response => {
-        const userPatterns = response.data || [];
+        const userPatterns = Array.isArray(response.data) ? response.data : [];
         userPatterns.forEach(pattern => {
-          aggregatedPatterns[pattern.month - 1].days += pattern.days;
+          if (pattern.month >= 1 && pattern.month <= 12) {
+            aggregatedPatterns[pattern.month - 1].days += pattern.days || 0;
+          }
         });
       });
       
       setLeavePatterns(aggregatedPatterns);
+      setError(null);
     } catch (err) {
       console.error("Error fetching leave patterns:", err);
+      setError("Failed to fetch leave patterns. Please try again.");
     }
   };
 
   const fetchEmployeeStats = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/leaves");
-      const allLeaves = res.data || [];
-      const stats = {};
-
-      allLeaves.forEach(leave => {
-        const email = leave.email;
-        if (!stats[email]) {
-          stats[email] = { email, approved: 0, rejected: 0 };
-        }
-        if (leave.status === 'Approved') {
-          stats[email].approved += 1;
-        } else if (leave.status === 'Declined') {
-          stats[email].rejected += 1;
-        }
-      });
-
-      const employeeStatsArray = Object.values(stats).filter(employee => employee.approved > 0 || employee.rejected > 0);
-      setEmployeeStats(employeeStatsArray);
+      const res = await axios.get("http://localhost:5000/api/employee-stats");
+      const stats = Array.isArray(res.data) ? res.data : [];
+      setEmployeeStats(stats);
+      setError(null);
+      if (stats.length === 0) {
+        setError("No employee stats available.");
+      }
     } catch (err) {
       console.error("Error fetching employee stats:", err);
+      setError("Failed to fetch employee stats. Please try again.");
       setEmployeeStats([]);
     }
   };
@@ -119,31 +119,48 @@ const AdminDashboard = () => {
   const fetchLeaveStats = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/leaves");
-      const allLeaves = res.data || [];
+      const allLeaves = Array.isArray(res.data) ? res.data : [];
       const approved = allLeaves.filter(leave => leave.status === 'Approved').length;
-      const rejected = allLeaves.filter(leave => leave.status === 'Declined').length;
-      setLeaveStats({ approved, rejected });
+      const declined = allLeaves.filter(leave => leave.status === 'Declined').length;
+      setLeaveStats({ approved, declined });
+      setError(null);
     } catch (err) {
       console.error("Error fetching leave stats:", err);
+      setError("Failed to fetch leave stats. Please try again.");
+    }
+  };
+
+  const fetchPendingSalaryRequests = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/salary-requests/pending");
+      setPendingSalaryRequests(Array.isArray(res.data) ? res.data : []);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching pending salary requests:", err);
+      setError("Failed to fetch pending salary requests. Please try again.");
+      setPendingSalaryRequests([]);
     }
   };
 
   const handleApprove = async (id) => {
     try {
       const res = await axios.put(`http://localhost:5000/api/leaves/approve/${id}`);
-      fetchPendingLeaves();
+      await fetchPendingLeaves();
       if (res.data) {
         setApprovedLeaves((prev) => [...prev, res.data]);
       } else {
-        fetchApprovedLeaves();
+        await fetchApprovedLeaves();
       }
-      fetchAllLeavePatterns();
-      fetchEmployeeStats();
-      fetchLeaveStats();
+      await Promise.all([
+        fetchAllLeavePatterns(),
+        fetchEmployeeStats(),
+        fetchLeaveStats()
+      ]);
       alert("Leave approved!");
     } catch (err) {
       console.error("Error approving leave:", err);
       alert("Failed to approve leave.");
+      setError("Failed to approve leave. Please try again.");
     }
   };
 
@@ -158,14 +175,59 @@ const AdminDashboard = () => {
       await axios.put(`http://localhost:5000/api/leaves/decline/${id}`, {
         declineReason,
       });
-      fetchPendingLeaves();
-      fetchAllLeavePatterns();
-      fetchEmployeeStats();
-      fetchLeaveStats();
+      await Promise.all([
+        fetchPendingLeaves(),
+        fetchAllLeavePatterns(),
+        fetchEmployeeStats(),
+        fetchLeaveStats()
+      ]);
       alert("Leave declined successfully.");
     } catch (err) {
       console.error("Error declining leave:", err);
       alert("Failed to decline leave.");
+      setError("Failed to decline leave. Please try again.");
+    }
+  };
+
+  const handleSetSalary = async (requestId, employeeEmail) => {
+    const basicPay = prompt("Enter Basic Pay (₹):");
+    const hra = prompt("Enter HRA (₹):");
+    const allowances = prompt("Enter Allowances (₹):");
+
+    if (!basicPay || !hra || !allowances) {
+      alert("All salary fields are required.");
+      return;
+    }
+
+    const basicPayNum = parseFloat(basicPay);
+    const hraNum = parseFloat(hra);
+    const allowancesNum = parseFloat(allowances);
+
+    if (isNaN(basicPayNum) || isNaN(hraNum) || isNaN(allowancesNum)) {
+      alert("Please enter valid numbers for salary fields.");
+      return;
+    }
+
+    const total = basicPayNum + hraNum + allowancesNum;
+
+    try {
+      await axios.put(`http://localhost:5000/api/users/salary/${encodeURIComponent(employeeEmail)}`, {
+        salary: {
+          basicPay: basicPayNum,
+          hra: hraNum,
+          allowances: allowancesNum,
+          total,
+          month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+        },
+      });
+      await axios.put(`http://localhost:5000/api/salary-requests/approve/${requestId}`);
+      await fetchPendingSalaryRequests();
+      alert("Salary set successfully!");
+      setError(null);
+    } catch (err) {
+      console.error("Error setting salary:", err);
+      alert("Failed to set salary.");
+      setError("Failed to set salary. Please try again.");
     }
   };
 
@@ -181,6 +243,9 @@ const AdminDashboard = () => {
     if (selectedItem === "Employees") {
       fetchEmployeeStats();
     }
+    if (selectedItem === "Salary") {
+      fetchPendingSalaryRequests();
+    }
   }, [selectedItem]);
 
   const handleLogout = () => {
@@ -189,12 +254,12 @@ const AdminDashboard = () => {
 
   const pieData = [
     { name: 'Approved', value: leaveStats.approved },
-    { name: 'Rejected', value: leaveStats.rejected },
-  ];
+    { name: 'Declined', value: leaveStats.declined },
+  ].filter(entry => entry.value > 0);
 
   const barData = [
     { name: 'Approved', count: leaveStats.approved, fill: '#22c55e' },
-    { name: 'Rejected', count: leaveStats.rejected, fill: '#ef4444' },
+    { name: 'Declined', count: leaveStats.declined, fill: '#ef4444' },
   ];
 
   const COLORS = ['#22c55e', '#ef4444'];
@@ -206,7 +271,7 @@ const AdminDashboard = () => {
           <img
             src="aju.jpg"
             alt="logo"
-            className={`transition-all duration-300 ${open ? "w-10" : "w-0"} h-10 rounded-md`}
+            className={`transition-all duration-300 ${open ? "w-10 h-10" : "w-0 h-0"} rounded-md`}
           />
           <MdMenuOpen
             size={26}
@@ -223,7 +288,7 @@ const AdminDashboard = () => {
               onClick={() => setSelectedItem(item.label)}
               className="flex items-center gap-4 text-white p-3 my-2 rounded-lg hover:bg-blue-700 cursor-pointer relative group"
             >
-              <div className="flex-shrink-0">{item.icons}</div>
+              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">{item.icons}</div>
               <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>
                 {item.label}
               </span>
@@ -236,17 +301,31 @@ const AdminDashboard = () => {
           ))}
         </ul>
 
-        <div className="flex items-center gap-4 text-white p-3 mt-auto rounded-lg hover:bg-blue-700 cursor-pointer">
-          <CgProfile size={23} />
-          {open && <span>Admin</span>}
+        <div className="flex items-center gap-4 text-white p-3 mt-auto rounded-lg hover:bg-blue-700 cursor-pointer relative group">
+          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+            <CgProfile size={23} />
+          </div>
+          <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>Admin</span>
+          {!open && (
+            <span className="absolute left-16 bg-blue-100 text-blue-900 text-sm px-2 py-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+              Admin
+            </span>
+          )}
         </div>
 
         <div
           onClick={handleLogout}
-          className="flex items-center gap-4 text-white p-3 mt-2 rounded-lg hover:bg-blue-700 cursor-pointer"
+          className="flex items-center gap-4 text-white p-3 mt-2 rounded-lg hover:bg-blue-700 cursor-pointer relative group"
         >
-          <IoIosLogOut size={23} />
-          {open && <span>Logout</span>}
+          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+            <IoIosLogOut size={23} />
+          </div>
+          <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>Logout</span>
+          {!open && (
+            <span className="absolute left-16 bg-blue-100 text-blue-900 text-sm px-2 py-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
+              Logout
+            </span>
+          )}
         </div>
       </nav>
 
@@ -257,6 +336,12 @@ const AdminDashboard = () => {
         >
           {theme === 'light' ? <BsMoon size={20} /> : <BsSun size={20} />}
         </button>
+
+        {error && (
+          <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+            {error}
+          </div>
+        )}
 
         {selectedItem === "Dashboard" && (
           <div>
@@ -273,7 +358,7 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
               <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">Approval Breakdown (Pie Chart)</h3>
-                {leaveStats.approved + leaveStats.rejected === 0 ? (
+                {leaveStats.approved + leaveStats.declined === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400">No leaves processed yet.</p>
                 ) : (
                   <PieChart width={300} height={300}>
@@ -297,7 +382,7 @@ const AdminDashboard = () => {
               </div>
               <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
                 <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">Approval Breakdown (Bar Chart)</h3>
-                {leaveStats.approved + leaveStats.rejected === 0 ? (
+                {leaveStats.approved + leaveStats.declined === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400">No leaves processed yet.</p>
                 ) : (
                   <BarChart width={300} height={300} data={barData}>
@@ -341,13 +426,14 @@ const AdminDashboard = () => {
               Employee Leave Statistics
             </h2>
             {employeeStats.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">No employee leave data available.</p>
+              <p className="text-gray-500 dark:text-gray-400">{error || "No employee leave data available."}</p>
             ) : (
               employeeStats.map((employee, index) => (
                 <div key={index} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
-                  <p className="dark:text-gray-200"><strong>Employee:</strong> {employee.email}</p>
-                  <p className="dark:text-gray-200"><strong>Approved Leaves:</strong> {employee.approved}</p>
-                  <p className="dark:text-gray-200"><strong>Rejected Leaves:</strong> {employee.rejected}</p>
+                  <p className="dark:text-gray-200"><strong>Employee:</strong> {employee.name || 'N/A'} ({employee.email || 'N/A'})</p>
+                  <p className="dark:text-gray-200"><strong>Approved Leaves:</strong> {employee.approved || 0}</p>
+                  <p className="dark:text-gray-200"><strong>Declined Leaves:</strong> {employee.declined || 0}</p>
+                  <p className="dark:text-gray-200"><strong>Last Updated:</strong> {employee.updatedAt ? new Date(employee.updatedAt).toLocaleDateString() : 'N/A'}</p>
                 </div>
               ))
             )}
@@ -360,14 +446,14 @@ const AdminDashboard = () => {
               Leave Requests
             </h2>
             {pendingLeaves.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">No pending leave requests.</p>
+              <p className="text-gray-500 dark:text-gray-400">{error || "No pending leave requests."}</p>
             ) : (
               pendingLeaves.map((leave) => (
                 <div key={leave._id} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
-                  <p className="dark:text-gray-200"><strong>Employee:</strong> {leave.email}</p>
-                  <p className="dark:text-gray-200"><strong>From:</strong> {leave.from}</p>
-                  <p className="dark:text-gray-200"><strong>To:</strong> {leave.to}</p>
-                  <p className="dark:text-gray-200"><strong>Reason:</strong> {leave.reason}</p>
+                  <p className="dark:text-gray-200"><strong>Employee:</strong> {leave.email || 'N/A'}</p>
+                  <p className="dark:text-gray-200"><strong>From:</strong> {leave.from ? new Date(leave.from).toLocaleDateString() : 'N/A'}</p>
+                  <p className="dark:text-gray-200"><strong>To:</strong> {leave.to ? new Date(leave.to).toLocaleDateString() : 'N/A'}</p>
+                  <p className="dark:text-gray-200"><strong>Reason:</strong> {leave.reason || 'N/A'}</p>
                   <div className="flex gap-3 mt-3">
                     <button
                       className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
@@ -385,6 +471,41 @@ const AdminDashboard = () => {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {selectedItem === "Salary" && (
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
+            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
+              Salary Management
+            </h2>
+            {pendingSalaryRequests.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400">{error || "No pending salary requests."}</p>
+            ) : (
+              pendingSalaryRequests.map((request) => (
+                <div key={request._id} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
+                  <p className="dark:text-gray-200"><strong>Employee:</strong> {request.employeeEmail || 'N/A'}</p>
+                  <p className="dark:text-gray-200"><strong>Requested At:</strong> {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'N/A'}</p>
+                  <div className="flex gap-3 mt-3">
+                    <button
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                      onClick={() => handleSetSalary(request._id, request.employeeEmail)}
+                    >
+                      Set Salary
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {selectedItem === "Settings" && (
+          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
+            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
+              Settings
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400">Settings features coming soon.</p>
           </div>
         )}
       </main>
