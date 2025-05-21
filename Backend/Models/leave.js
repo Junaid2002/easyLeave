@@ -11,13 +11,11 @@ const leaveSchema = new mongoose.Schema({
   to: { type: String, required: false },
   reason: { type: String, required: true },
   oneDay: { type: Boolean, default: false },
-
   status: {
     type: String,
     enum: ['Pending', 'Approved', 'Declined'],
     default: 'Pending'
   },
-
   declineReason: {
     type: String,
     default: ""
@@ -28,6 +26,4 @@ const leaveSchema = new mongoose.Schema({
 
 leaveSchema.index({ email: 1 });
 
-const Leave = mongoose.model('Leave', leaveSchema);
-
-export default Leave;
+export default mongoose.model('Leave', leaveSchema);

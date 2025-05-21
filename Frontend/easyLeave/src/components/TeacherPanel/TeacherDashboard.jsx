@@ -7,7 +7,7 @@ import { CgProfile } from "react-icons/cg";
 import { FaRegCalendarCheck } from "react-icons/fa";
 import { BsSun, BsMoon } from "react-icons/bs";
 import { motion, AnimatePresence } from 'framer-motion';
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -56,6 +56,8 @@ const TeacherDashboard = () => {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'blue');
+  const [leavePatterns, setLeavePatterns] = useState([]);
+  const [recommendedDays, setRecommendedDays] = useState([]);
 
   const userEmail = localStorage.getItem("userEmail") || "akanchha@example.com";
 
@@ -106,6 +108,7 @@ const TeacherDashboard = () => {
       setLeaveReason('');
       setOneDay(false);
       fetchLeaves();
+      fetchRecommendedDays();
     } catch (error) {
       console.error("Leave submission failed:", error);
     }
@@ -157,9 +160,29 @@ const TeacherDashboard = () => {
     }
   };
 
+  const fetchLeavePatterns = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/leaves/patterns?email=${encodeURIComponent(userEmail)}`);
+      setLeavePatterns(res.data || []);
+    } catch (error) {
+      console.error("Failed to fetch leave patterns:", error);
+    }
+  };
+
+  const fetchRecommendedDays = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/leaves/recommendations?email=${encodeURIComponent(userEmail)}`);
+      setRecommendedDays(res.data || []);
+    } catch (error) {
+      console.error("Failed to fetch recommended days:", error);
+    }
+  };
+
   useEffect(() => {
     fetchLeaves();
     fetchUserDetails();
+    fetchLeavePatterns();
+    fetchRecommendedDays();
   }, []);
 
   const pieData = [
@@ -278,7 +301,7 @@ const TeacherDashboard = () => {
                   <p className="text-2xl text-orange-500">{stats.pending}</p>
                 </motion.div>
                 <motion.div
-merzen          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
+                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
                   whileHover={{ scale: 1.05 }}
                 >
                   <h3 className="text-lg font-semibold dark:text-gray-200">Approved</h3>
@@ -296,7 +319,7 @@ merzen          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md te
                 className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
                 whileHover={{ scale: 1.02 }}
               >
-                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Trends</h3>
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Trends (Pie Chart)</h3>
                 <PieChart width={400} height={300}>
                   <Pie
                     data={pieData}
@@ -314,6 +337,23 @@ merzen          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md te
                   <Tooltip />
                   <Legend />
                 </PieChart>
+              </motion.div>
+              <motion.div
+                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
+                whileHover={{ scale: 1.02 }}
+              >
+                <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Patterns (Monthly Trends)</h3>
+                {leavePatterns.length > 0 ? (
+                  <BarChart width={600} height={300} data={leavePatterns}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottom', offset: -5 }} />
+                    <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft' }} />
+                    <Tooltip />
+                    <Bar dataKey="days" fill="#1e3a8a" />
+                  </BarChart>
+                ) : (
+                  <p className="dark:text-gray-200">No leave patterns available.</p>
+                )}
               </motion.div>
               <motion.div
                 className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md"
@@ -387,6 +427,18 @@ merzen          className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md te
             >
               <h2 className="text-2xl font-bold mb-6 text-[var(--accent-color)] dark:text-gray-100">Apply for Leave</h2>
               <div className="space-y-6">
+                <div>
+                  <label className="block mb-1 font-semibold dark:text-gray-200">Recommended Days to Take Leave:</label>
+                  {recommendedDays.length > 0 ? (
+                    <ul className="list-disc pl-5 dark:text-gray-200">
+                      {recommendedDays.map((day, idx) => (
+                        <li key={idx}>{new Date(day).toLocaleDateString()}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="dark:text-gray-200">No recommended days available.</p>
+                  )}
+                </div>
                 <div>
                   <label className="block mb-1 font-semibold dark:text-gray-200">Leave From:</label>
                   <input

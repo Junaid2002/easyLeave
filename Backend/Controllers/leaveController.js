@@ -1,4 +1,6 @@
 import Leave from '../Models/leave.js';
+import User from '../Models/User.js';
+import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
 
 export const createLeave = async (req, res) => {
   const { email, from, to, reason, oneDay } = req.body;
@@ -8,7 +10,15 @@ export const createLeave = async (req, res) => {
   }
 
   try {
+    const user = await User.findOne({ email });
     const leave = new Leave({ email, from, to, reason, oneDay, status: 'Pending' });
+    
+    const autoApproveCriteria = { maxDays: 2, reason: 'casual' };
+    const days = oneDay ? 1 : (new Date(to) - new Date(from)) / (1000 * 60 * 60 * 24);
+    if (days <= autoApproveCriteria.maxDays && reason.toLowerCase() === autoApproveCriteria.reason) {
+      leave.status = 'Approved';
+    }
+    
     await leave.save();
     res.status(201).json({ message: 'Leave created successfully', leave });
   } catch (error) {
@@ -82,5 +92,31 @@ export const declineLeave = async (req, res) => {
     res.status(200).json(updatedLeave);
   } catch (error) {
     res.status(500).json({ message: 'Failed to decline leave' });
+  }
+};
+
+export const getLeaveRecommendations = async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+  try {
+    const recommendations = await recommendLeaveDays(email);
+    res.status(200).json(recommendations);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch recommendations' });
+  }
+};
+
+export const getLeavePatterns = async (req, res) => {
+  const { email } = req.query;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+  try {
+    const patterns = await analyzeLeavePatterns(email);
+    res.status(200).json(patterns);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch leave patterns' });
   }
 };
