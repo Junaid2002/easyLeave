@@ -91,7 +91,7 @@ const TeacherDashboard = () => {
     try {
       const endpoint = isAdmin
         ? 'http://localhost:5000/api/leaves'
-        : `http://localhost:5000/api/leaves/email?email=${encodeURIComponent(userEmail)}`;
+        : `http://localhost:5000/api/leaves/by-email?email=${encodeURIComponent(userEmail)}`;
       const res = await axios.get(endpoint);
       const leaveData = Array.isArray(res.data) ? res.data : [];
       setLeaves(leaveData);
@@ -110,8 +110,10 @@ const TeacherDashboard = () => {
       }));
       setCalendarEvents(events);
     } catch (error) {
-      console.error('Failed to fetch leaves:', error);
-      setError('Failed to load leaves. Please try again.');
+      console.error('Error fetching leaves:', error);
+      setError(error.response?.status === 404
+        ? 'Leave endpoint not found. Contact your administrator.'
+        : 'Failed to load leaves. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -124,8 +126,8 @@ const TeacherDashboard = () => {
       setUserDetails(user);
       setIsAdmin(user.role === 'admin');
     } catch (error) {
-      console.error('Failed to fetch user details:', error);
-      setIsAdmin(false); 
+      console.error('Error fetching user details:', error);
+      setIsAdmin(false);
     }
   };
 
@@ -134,7 +136,10 @@ const TeacherDashboard = () => {
       const res = await axios.get(`http://localhost:5000/api/leaves/patterns?email=${encodeURIComponent(userEmail)}`);
       setLeavePatterns(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error('Failed to fetch leave patterns:', error);
+      console.error('Error fetching leave patterns:', error);
+      setError(error.response?.status === 404
+        ? 'Leave patterns endpoint not found. Contact your administrator.'
+        : 'Failed to load leave patterns. Please try again.');
     }
   };
 
@@ -143,7 +148,10 @@ const TeacherDashboard = () => {
       const res = await axios.get(`http://localhost:5000/api/leaves/recommendations?email=${encodeURIComponent(userEmail)}`);
       setRecommendedDays(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
-      console.error('Failed to fetch recommended days:', error);
+      console.error('Error fetching recommended days:', error);
+      setError(error.response?.status === 404
+        ? 'Recommendations endpoint not found. Contact your administrator.'
+        : 'Failed to load recommended days. Please try again.');
     }
   };
 
@@ -152,10 +160,7 @@ const TeacherDashboard = () => {
     fetchUserDetails();
     fetchLeavePatterns();
     fetchRecommendedDays();
-
-    const interval = setInterval(fetchLeaves, 10000);
-    return () => clearInterval(interval);
-  }, [isAdmin, userEmail]); 
+  }, [isAdmin, userEmail]);
 
   const handleSubmit = async () => {
     if (!leaveFromDate || !leaveReason) {
@@ -203,7 +208,7 @@ const TeacherDashboard = () => {
       await fetchLeaves();
       await fetchRecommendedDays();
     } catch (error) {
-      console.error('Leave submission failed:', error);
+      console.error('Error submitting leave:', error);
       alert(`Failed to submit leave: ${error.response?.data?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
@@ -214,21 +219,91 @@ const TeacherDashboard = () => {
     { name: 'Pending', value: stats.pending },
     { name: 'Approved', value: stats.approved },
     { name: 'Declined', value: stats.declined },
-  ].filter((entry) => entry.value > 0); 
+  ].filter((entry) => entry.value > 0);
 
   const COLORS = ['#f97316', '#22c55e', '#ef4444'];
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 animate-gradient-bg">
+      <style>
+        {`
+          :root {
+            --accent-color: #1e3a8a;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+          }
+          .dark {
+            --glass-bg: rgba(0, 0, 0, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.1);
+          }
+          .animate-gradient-bg {
+            background-size: 200% 200%;
+            animation: gradient 15s ease infinite;
+          }
+          @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .glassmorphism {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+          }
+          .futuristic-button {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: none;
+            z-index: 1;
+          }
+          .futuristic-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.3),
+              transparent
+            );
+            transition: 0.5s;
+            z-index: -1;
+          }
+          .futuristic-button:hover::before {
+            left: 100%;
+          }
+          .futuristic-button:hover {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+          }
+          * {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+          }
+          @media (max-width: 640px) {
+            nav {
+              position: fixed;
+              z-index: 50;
+            }
+            main {
+              margin-left: 0;
+            }
+          }
+        `}
+      </style>
       <motion.nav
-        className={`transition-all duration-500 ${open ? 'w-60' : 'w-16'} bg-[var(--accent-color)] dark:bg-gray-800 flex flex-col`}
+        className={`transition-all duration-500 ${open ? 'w-60' : 'w-16'} bg-[var(--accent-color)] dark:bg-gray-800 flex flex-col z-10`}
         initial={{ width: 60 }}
         animate={{ width: open ? 240 : 60 }}
         transition={{ duration: 0.5 }}
       >
         <div className="flex items-center justify-between p-4 h-20">
           <motion.img
-            src="aju.jpg"
+            src="/aju.jpg"
             alt="logo"
             className={`transition-all duration-300 ${open ? 'w-10' : 'w-0'} rounded-md`}
             initial={{ width: 0 }}
@@ -292,7 +367,7 @@ const TeacherDashboard = () => {
       </motion.nav>
 
       <motion.main
-        className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 lg:p-10 transition-colors duration-300 relative"
+        className="flex-1 overflow-auto p-4 sm:p-6 lg:p-10 transition-colors duration-300 relative"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -300,7 +375,7 @@ const TeacherDashboard = () => {
         <div className="absolute top-4 right-4 flex items-center gap-2">
           <motion.button
             onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            className="text-[var(--accent-color)] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-full"
+            className="futuristic-button text-[var(--accent-color)] dark:text-gray-200 bg-[var(--glass-bg)] p-2 rounded-full"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
@@ -308,7 +383,7 @@ const TeacherDashboard = () => {
           </motion.button>
           <motion.button
             onClick={fetchLeaves}
-            className="text-[var(--accent-color)] dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 p-2 rounded-full"
+            className="futuristic-button text-[var(--accent-color)] dark:text-gray-200 bg-[var(--glass-bg)] p-2 rounded-full"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             disabled={loading}
@@ -329,27 +404,27 @@ const TeacherDashboard = () => {
                 {isAdmin ? 'Admin Dashboard' : 'Leave Summary'}
               </h2>
               {error && (
-                <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
                   {error}
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <motion.div
-                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
+                  className="glassmorphism p-4 rounded-lg text-center"
                   whileHover={{ scale: 1.05 }}
                 >
                   <h3 className="text-lg font-semibold dark:text-gray-200">Pending</h3>
                   <p className="text-2xl text-orange-500">{loading ? '...' : stats.pending}</p>
                 </motion.div>
                 <motion.div
-                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
+                  className="glassmorphism p-4 rounded-lg text-center"
                   whileHover={{ scale: 1.05 }}
                 >
                   <h3 className="text-lg font-semibold dark:text-gray-200">Approved</h3>
                   <p className="text-2xl text-green-500">{loading ? '...' : stats.approved}</p>
                 </motion.div>
                 <motion.div
-                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center"
+                  className="glassmorphism p-4 rounded-lg text-center"
                   whileHover={{ scale: 1.05 }}
                 >
                   <h3 className="text-lg font-semibold dark:text-gray-200">Declined</h3>
@@ -357,7 +432,7 @@ const TeacherDashboard = () => {
                 </motion.div>
               </div>
               <motion.div
-                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
+                className="glassmorphism p-6 rounded-lg mb-6"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Trends (Pie Chart)</h3>
@@ -380,8 +455,10 @@ const TeacherDashboard = () => {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                        backgroundColor: theme === 'dark' ? '#1f2937' : 'var(--glass-bg)',
                         color: theme === 'dark' ? '#d1d5db' : '#1e3a8a',
+                        border: 'none',
+                        backdropFilter: 'blur(10px)',
                       }}
                     />
                     <Legend wrapperStyle={{ color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
@@ -391,7 +468,7 @@ const TeacherDashboard = () => {
                 )}
               </motion.div>
               <motion.div
-                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
+                className="glassmorphism p-6 rounded-lg mb-6"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Leave Patterns (Monthly Trends)</h3>
@@ -411,8 +488,10 @@ const TeacherDashboard = () => {
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+                        backgroundColor: theme === 'dark' ? '#1f2937' : 'var(--glass-bg)',
                         color: theme === 'dark' ? '#d1d5db' : '#1e3a8a',
+                        border: 'none',
+                        backdropFilter: 'blur(10px)',
                       }}
                     />
                     <Bar dataKey="days" fill="#1e3a8a" />
@@ -422,7 +501,7 @@ const TeacherDashboard = () => {
                 )}
               </motion.div>
               <motion.div
-                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6"
+                className="glassmorphism p-6 rounded-lg mb-6"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">Upcoming Leaves</h3>
@@ -441,7 +520,7 @@ const TeacherDashboard = () => {
                 )}
               </motion.div>
               <motion.div
-                className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6"
+                className="glassmorphism p-6 rounded-lg mt-6"
                 whileHover={{ scale: 1.02 }}
               >
                 <h3 className="text-lg font-semibold mb-4 dark:text-gray-200">My Leave Requests</h3>
@@ -454,7 +533,7 @@ const TeacherDashboard = () => {
                     {leaves.map((leave, idx) => (
                       <motion.li
                         key={leave._id || idx}
-                        className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg flex justify-between items-center"
+                        className="glassmorphism p-4 rounded-lg flex justify-between items-center"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.1 }}
@@ -490,7 +569,7 @@ const TeacherDashboard = () => {
           {selectedItem === 'Leave Application' && (
             <motion.div
               key="leave"
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md w-full max-w-4xl mx-auto"
+              className="glassmorphism p-6 rounded-xl w-full max-w-4xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -499,7 +578,7 @@ const TeacherDashboard = () => {
             >
               <h2 className="text-2xl font-bold mb-6 text-[var(--accent-color)] dark:text-gray-100">Apply for Leave</h2>
               {error && (
-                <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
                   {error}
                 </div>
               )}
@@ -565,7 +644,7 @@ const TeacherDashboard = () => {
                 </div>
                 <motion.button
                   onClick={handleSubmit}
-                  className="bg-[var(--accent-color)] text-white px-6 py-3 rounded-md hover:bg-[var(--accent-color)]/80 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  className="futuristic-button bg-[var(--accent-color)] text-white px-6 py-3 rounded-md"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   disabled={loading}
@@ -579,7 +658,7 @@ const TeacherDashboard = () => {
           {selectedItem === 'Salary' && (
             <motion.div
               key="salary"
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="glassmorphism p-6 rounded-xl max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -615,7 +694,7 @@ const TeacherDashboard = () => {
           {selectedItem === 'Profile' && (
             <motion.div
               key="profile"
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="glassmorphism p-6 rounded-xl max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -650,7 +729,7 @@ const TeacherDashboard = () => {
           {selectedItem === 'Settings' && (
             <motion.div
               key="settings"
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md max-w-3xl mx-auto"
+              className="glassmorphism p-6 rounded-xl max-w-3xl mx-auto"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}

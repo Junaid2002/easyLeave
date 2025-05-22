@@ -4,6 +4,7 @@ import {
   MdMenuOpen,
   MdOutlineDashboard,
   MdCurrencyRupee,
+  MdRefresh,
 } from "react-icons/md";
 import { IoIosLogOut } from "react-icons/io";
 import { CiSettings } from "react-icons/ci";
@@ -13,26 +14,28 @@ import { CgProfile } from "react-icons/cg";
 import { BsSun, BsMoon } from "react-icons/bs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const menuItems = [
-  { icons: <MdOutlineDashboard color="white" size={23} />, label: "Dashboard" },
-  { icons: <FaUserLarge color="white" size={21} />, label: "Employees" },
-  { icons: <MdCurrencyRupee color="white" size={23} />, label: "Salary" },
-  { icons: <SlCalender color="white" size={23} />, label: "Leaves" },
-  { icons: <CiSettings color="white" size={23} />, label: "Settings" },
+  { icons: <MdOutlineDashboard size={23} />, label: "Dashboard" },
+  { icons: <FaUserLarge size={21} />, label: "Employees" },
+  { icons: <MdCurrencyRupee size={23} />, label: "Salary" },
+  { icons: <SlCalender size={23} />, label: "Leaves" },
+  { icons: <CiSettings size={23} />, label: "Settings" },
 ];
 
 const AdminDashboard = () => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [selectedItem, setSelectedItem] = useState("Dashboard");
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [approvedLeaves, setApprovedLeaves] = useState([]);
   const [leavePatterns, setLeavePatterns] = useState([]);
   const [employeeStats, setEmployeeStats] = useState([]);
-  const [pendingSalaryRequests, setPendingSalaryRequests] = useState([]); 
+  const [pendingSalaryRequests, setPendingSalaryRequests] = useState([]);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [leaveStats, setLeaveStats] = useState({ approved: 0, declined: 0 });
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -102,7 +105,7 @@ const AdminDashboard = () => {
 
   const fetchEmployeeStats = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/employee-stats");
+      const res = await axios.get("http://localhost:5000/api/leaves/employee-stats");
       const stats = Array.isArray(res.data) ? res.data : [];
       setEmployeeStats(stats);
       setError(null);
@@ -111,7 +114,11 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error("Error fetching employee stats:", err);
-      setError("Failed to fetch employee stats. Please try again.");
+      if (err.response?.status === 404) {
+        setError("Employee stats endpoint not found. Contact your administrator.");
+      } else {
+        setError("Failed to fetch employee stats. Please try again later.");
+      }
       setEmployeeStats([]);
     }
   };
@@ -142,6 +149,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (selectedItem === "Dashboard") {
+        await Promise.all([fetchAllLeavePatterns(), fetchLeaveStats()]);
+      } else if (selectedItem === "Leaves") {
+        await Promise.all([fetchPendingLeaves(), fetchApprovedLeaves()]);
+      } else if (selectedItem === "Employees") {
+        await fetchEmployeeStats();
+      } else if (selectedItem === "Salary") {
+        await fetchPendingSalaryRequests();
+      }
+    } catch (err) {
+      console.error("Error refreshing data:", err);
+      setError("Failed to refresh data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       const res = await axios.put(`http://localhost:5000/api/leaves/approve/${id}`);
@@ -153,8 +181,8 @@ const AdminDashboard = () => {
       }
       await Promise.all([
         fetchAllLeavePatterns(),
+        fetchLeaveStats(),
         fetchEmployeeStats(),
-        fetchLeaveStats()
       ]);
       alert("Leave approved!");
     } catch (err) {
@@ -178,8 +206,8 @@ const AdminDashboard = () => {
       await Promise.all([
         fetchPendingLeaves(),
         fetchAllLeavePatterns(),
+        fetchLeaveStats(),
         fetchEmployeeStats(),
-        fetchLeaveStats()
       ]);
       alert("Leave declined successfully.");
     } catch (err) {
@@ -265,250 +293,456 @@ const AdminDashboard = () => {
   const COLORS = ['#22c55e', '#ef4444'];
 
   return (
-    <div className="flex h-screen">
-      <nav className={`shadow-md duration-300 ${open ? "w-60" : "w-16"} p-4 flex flex-col bg-blue-900`}>
-        <div className="flex justify-between items-center mb-6">
-          <img
-            src="aju.jpg"
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 animate-gradient-bg">
+      <style>
+        {`
+          :root {
+            --accent-color: #1e3a8a;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+          }
+          .dark {
+            --glass-bg: rgba(0, 0, 0, 0.2);
+            --glass-border: rgba(255, 255, 255, 0.1);
+          }
+          .animate-gradient-bg {
+            background-size: 200% 200%;
+            animation: gradient 15s ease infinite;
+          }
+          @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
+          .glassmorphism {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+          }
+          .futuristic-button {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: none;
+            z-index: 1;
+          }
+          .futuristic-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.3),
+              transparent
+            );
+            transition: 0.5s;
+            z-index: -1;
+          }
+          .futuristic-button:hover::before {
+            left: 100%;
+          }
+          .futuristic-button:hover {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+          }
+          * {
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+          }
+          @media (max-width: 640px) {
+            nav {
+              position: fixed;
+              z-index: 50;
+            }
+            main {
+              margin-left: 0;
+            }
+          }
+        `}
+      </style>
+      <motion.nav
+        className={`transition-all duration-500 ${open ? 'w-60' : 'w-16'} bg-[var(--accent-color)] dark:bg-gray-800 flex flex-col z-10`}
+        initial={{ width: 60 }}
+        animate={{ width: open ? 240 : 60 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center justify-between p-4 h-20">
+          <motion.img
+            src="/aju.jpg"
             alt="logo"
-            className={`transition-all duration-300 ${open ? "w-10 h-10" : "w-0 h-0"} rounded-md`}
+            className={`transition-all duration-300 ${open ? 'w-10' : 'w-0'} rounded-md`}
+            initial={{ width: 0 }}
+            animate={{ width: open ? 40 : 0 }}
           />
           <MdMenuOpen
-            size={26}
+            size={28}
             color="white"
-            className="cursor-pointer"
             onClick={() => setOpen(!open)}
+            className="cursor-pointer"
           />
         </div>
-
-        <ul className="flex-1">
-          {menuItems.map((item, index) => (
-            <li
-              key={index}
+        <ul className="flex-1 space-y-2 mt-4">
+          {menuItems.map((item, idx) => (
+            <motion.li
+              key={idx}
               onClick={() => setSelectedItem(item.label)}
-              className="flex items-center gap-4 text-white p-3 my-2 rounded-lg hover:bg-blue-700 cursor-pointer relative group"
+              className="flex items-center gap-3 text-white px-4 py-3 hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700 cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">{item.icons}</div>
-              <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>
+              <div>{item.icons}</div>
+              <motion.span
+                className={`${open ? 'inline' : 'hidden'} transition-opacity duration-300`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: open ? 1 : 0 }}
+              >
                 {item.label}
-              </span>
-              {!open && (
-                <span className="absolute left-16 bg-blue-100 text-blue-900 text-sm px-2 py-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-                  {item.label}
-                </span>
-              )}
-            </li>
+              </motion.span>
+            </motion.li>
           ))}
         </ul>
-
-        <div className="flex items-center gap-4 text-white p-3 mt-auto rounded-lg hover:bg-blue-700 cursor-pointer relative group">
-          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
-            <CgProfile size={23} />
-          </div>
-          <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>Admin</span>
-          {!open && (
-            <span className="absolute left-16 bg-blue-100 text-blue-900 text-sm px-2 py-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-              Admin
-            </span>
-          )}
+        <div className="px-4 py-3 text-white flex items-center gap-3">
+          <CgProfile size={23} />
+          <motion.span
+            className={`${open ? 'inline' : 'hidden'}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: open ? 1 : 0 }}
+          >
+            Admin
+          </motion.span>
         </div>
-
-        <div
+        <motion.div
+          className="px-4 py-3 text-white flex items-center gap-3 cursor-pointer hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700"
           onClick={handleLogout}
-          className="flex items-center gap-4 text-white p-3 mt-2 rounded-lg hover:bg-blue-700 cursor-pointer relative group"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
-            <IoIosLogOut size={23} />
-          </div>
-          <span className={`${open ? "block" : "hidden"} transition-all duration-300`}>Logout</span>
-          {!open && (
-            <span className="absolute left-16 bg-blue-100 text-blue-900 text-sm px-2 py-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 z-10">
-              Logout
-            </span>
-          )}
+          <IoIosLogOut size={23} />
+          <motion.span
+            className={`${open ? 'inline' : 'hidden'}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: open ? 1 : 0 }}
+          >
+            Logout
+          </motion.span>
+        </motion.div>
+      </motion.nav>
+
+      <motion.main
+        className="flex-1 overflow-auto p-4 sm:p-6 lg:p-10 transition-colors duration-300 relative"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="absolute top-4 right-4 flex items-center gap-2">
+          <motion.button
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            className="futuristic-button text-[var(--accent-color)] dark:text-gray-200 bg-[var(--glass-bg)] p-2 rounded-full"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            {theme === 'light' ? <BsMoon size={20} /> : <BsSun size={20} />}
+          </motion.button>
+          <motion.button
+            onClick={handleRefresh}
+            className="futuristic-button text-[var(--accent-color)] dark:text-gray-200 bg-[var(--glass-bg)] p-2 rounded-full"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            disabled={loading}
+          >
+            <MdRefresh size={20} className={loading ? 'animate-spin' : ''} />
+          </motion.button>
         </div>
-      </nav>
-
-      <main className="relative flex-1 p-4 sm:p-6 lg:p-10 bg-gray-100 dark:bg-gray-900 overflow-auto">
-        <button
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          className="absolute top-4 right-4 p-2 bg-blue-900 dark:bg-gray-700 text-white rounded-full hover:bg-blue-700 dark:hover:bg-gray-600 transition-all"
-        >
-          {theme === 'light' ? <BsMoon size={20} /> : <BsSun size={20} />}
-        </button>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-md mb-4">
-            {error}
-          </div>
-        )}
-
-        {selectedItem === "Dashboard" && (
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Welcome, Admin!
-            </h1>
-            <p className="text-gray-700 dark:text-gray-300 text-sm sm:text-base mb-6">
-              Use the sidebar to manage employees, salaries, and leaves.
-            </p>
-
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Leave Approval Statistics
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">Approval Breakdown (Pie Chart)</h3>
-                {leaveStats.approved + leaveStats.declined === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400">No leaves processed yet.</p>
-                ) : (
-                  <PieChart width={300} height={300}>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                    <Legend wrapperStyle={{ color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                  </PieChart>
-                )}
+        <AnimatePresence mode="wait">
+          {selectedItem === "Dashboard" && (
+            <motion.div
+              key="dashboard"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Welcome, Admin!
+              </h1>
+              <p className="text-gray-700 dark:text-gray-200 text-sm sm:text-base mb-6">
+                Use the sidebar to manage employees, salaries, and leaves. Current time: 08:44 PM IST, May 22, 2025.
+              </p>
+              {error && (
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
+                  {error}
+                </div>
+              )}
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Leave Approval Statistics
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                <motion.div
+                  className="glassmorphism p-4 rounded-lg"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-200 mb-4">Approval Breakdown (Pie Chart)</h3>
+                  {leaveStats.approved + leaveStats.declined === 0 ? (
+                    <p className="dark:text-gray-200">No leaves processed yet.</p>
+                  ) : (
+                    <PieChart width={300} height={300}>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme === 'dark' ? '#1f2937' : 'var(--glass-bg)',
+                          color: theme === 'dark' ? '#d1d5db' : '#1e3a8a',
+                          border: 'none',
+                          backdropFilter: 'blur(10px)',
+                        }}
+                      />
+                      <Legend wrapperStyle={{ color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
+                    </PieChart>
+                  )}
+                </motion.div>
+                <motion.div
+                  className="glassmorphism p-4 rounded-lg"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <h3 className="text-lg font-semibold dark:text-gray-200 mb-4">Approval Breakdown (Bar Chart)</h3>
+                  {leaveStats.approved + leaveStats.declined === 0 ? (
+                    <p className="dark:text-gray-200">No leaves processed yet.</p>
+                  ) : (
+                    <BarChart width={300} height={300} data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                      <XAxis dataKey="name" tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
+                      <YAxis tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: theme === 'dark' ? '#1f2937' : 'var(--glass-bg)',
+                          color: theme === 'dark' ? '#d1d5db' : '#1e3a8a',
+                          border: 'none',
+                          backdropFilter: 'blur(10px)',
+                        }}
+                      />
+                      <Bar dataKey="count" name="Leaves">
+                        {barData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  )}
+                </motion.div>
               </div>
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-4">Approval Breakdown (Bar Chart)</h3>
-                {leaveStats.approved + leaveStats.declined === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400">No leaves processed yet.</p>
-                ) : (
-                  <BarChart width={300} height={300} data={barData}>
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Leave Patterns (Monthly Trends)
+              </h2>
+              {leavePatterns.length === 0 ? (
+                <p className="dark:text-gray-200">No leave patterns available.</p>
+              ) : (
+                <motion.div
+                  className="glassmorphism p-4 rounded-lg mb-6"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <BarChart width={600} height={300} data={leavePatterns}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                    <XAxis dataKey="name" tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                    <YAxis tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                    <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                    <Bar dataKey="count" name="Leaves">
-                      {barData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Bar>
+                    <XAxis
+                      dataKey="month"
+                      label={{ value: 'Month', position: 'insideBottom', offset: -5, fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }}
+                      tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }}
+                    />
+                    <YAxis
+                      label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }}
+                      tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: theme === 'dark' ? '#1f2937' : 'var(--glass-bg)',
+                        color: theme === 'dark' ? '#d1d5db' : '#1e3a8a',
+                        border: 'none',
+                        backdropFilter: 'blur(10px)',
+                      }}
+                    />
+                    <Legend wrapperStyle={{ color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
+                    <Bar dataKey="days" fill="#1e3a8a" name="Total Leave Days" />
                   </BarChart>
-                )}
-              </div>
-            </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
 
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Leave Patterns (Monthly Trends)
-            </h2>
-            {leavePatterns.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">No leave patterns available.</p>
-            ) : (
-              <div className="p-4 bg-white dark:bg-gray-800 rounded-xl shadow-md mb-6">
-                <BarChart width={600} height={300} data={leavePatterns}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                  <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottom', offset: -5, fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                  <YAxis label={{ value: 'Days', angle: -90, position: 'insideLeft', fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} tick={{ fill: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                  <Tooltip contentStyle={{ backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                  <Legend wrapperStyle={{ color: theme === 'dark' ? '#d1d5db' : '#1e3a8a' }} />
-                  <Bar dataKey="days" fill="#1e3a8a" name="Total Leave Days" />
-                </BarChart>
-              </div>
-            )}
-          </div>
-        )}
-
-        {selectedItem === "Employees" && (
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Employee Leave Statistics
-            </h2>
-            {employeeStats.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">{error || "No employee leave data available."}</p>
-            ) : (
-              employeeStats.map((employee, index) => (
-                <div key={index} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
-                  <p className="dark:text-gray-200"><strong>Employee:</strong> {employee.name || 'N/A'} ({employee.email || 'N/A'})</p>
-                  <p className="dark:text-gray-200"><strong>Approved Leaves:</strong> {employee.approved || 0}</p>
-                  <p className="dark:text-gray-200"><strong>Declined Leaves:</strong> {employee.declined || 0}</p>
-                  <p className="dark:text-gray-200"><strong>Last Updated:</strong> {employee.updatedAt ? new Date(employee.updatedAt).toLocaleDateString() : 'N/A'}</p>
+          {selectedItem === "Employees" && (
+            <motion.div
+              key="employees"
+              className="glassmorphism p-4 sm:p-6 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Employee Leave Statistics
+              </h2>
+              {error && (
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
+                  {error}
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              )}
+              {employeeStats.length === 0 ? (
+                <p className="dark:text-gray-200">{error || "No employee leave data available."}</p>
+              ) : (
+                employeeStats.map((employee, index) => (
+                  <motion.div
+                    key={index}
+                    className="glassmorphism p-3 sm:p-4 rounded-md mb-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <p className="dark:text-gray-200"><strong>Employee:</strong> {employee.name || 'N/A'} ({employee.email || 'N/A'})</p>
+                    <p className="dark:text-gray-200"><strong>Approved Leaves:</strong> {employee.approved || 0}</p>
+                    <p className="dark:text-gray-200"><strong>Declined Leaves:</strong> {employee.declined || 0}</p>
+                    <p className="dark:text-gray-200"><strong>Pending Leaves:</strong> {employee.pending || 0}</p>
+                    <p className="dark:text-gray-200"><strong>Last Updated:</strong> {employee.updatedAt ? new Date(employee.updatedAt).toLocaleDateString() : 'N/A'}</p>
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          )}
 
-        {selectedItem === "Leaves" && (
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Leave Requests
-            </h2>
-            {pendingLeaves.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">{error || "No pending leave requests."}</p>
-            ) : (
-              pendingLeaves.map((leave) => (
-                <div key={leave._id} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
-                  <p className="dark:text-gray-200"><strong>Employee:</strong> {leave.email || 'N/A'}</p>
-                  <p className="dark:text-gray-200"><strong>From:</strong> {leave.from ? new Date(leave.from).toLocaleDateString() : 'N/A'}</p>
-                  <p className="dark:text-gray-200"><strong>To:</strong> {leave.to ? new Date(leave.to).toLocaleDateString() : 'N/A'}</p>
-                  <p className="dark:text-gray-200"><strong>Reason:</strong> {leave.reason || 'N/A'}</p>
-                  <div className="flex gap-3 mt-3">
-                    <button
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                      onClick={() => handleApprove(leave._id)}
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
-                      onClick={() => handleDecline(leave._id)}
-                    >
-                      Decline
-                    </button>
-                  </div>
+          {selectedItem === "Leaves" && (
+            <motion.div
+              key="leaves"
+              className="glassmorphism p-4 sm:p-6 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Leave Requests
+              </h2>
+              {error && (
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
+                  {error}
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              )}
+              {pendingLeaves.length === 0 ? (
+                <p className="dark:text-gray-200">{error || "No pending leave requests."}</p>
+              ) : (
+                pendingLeaves.map((leave) => (
+                  <motion.div
+                    key={leave._id}
+                    className="glassmorphism p-3 sm:p-4 rounded-md mb-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <p className="dark:text-gray-200"><strong>Employee:</strong> {leave.email || 'N/A'}</p>
+                    <p className="dark:text-gray-200"><strong>From:</strong> {leave.from ? new Date(leave.from).toLocaleDateString() : 'N/A'}</p>
+                    <p className="dark:text-gray-200"><strong>To:</strong> {leave.to ? new Date(leave.to).toLocaleDateString() : 'N/A'}</p>
+                    <p className="dark:text-gray-200"><strong>Reason:</strong> {leave.reason || 'N/A'}</p>
+                    <div className="flex gap-3 mt-3">
+                      <motion.button
+                        className="futuristic-button bg-green-600 text-white px-4 py-2 rounded-md text-sm"
+                        onClick={() => handleApprove(leave._id)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Approve
+                      </motion.button>
+                      <motion.button
+                        className="futuristic-button bg-red-600 text-white px-4 py-2 rounded-md text-sm"
+                        onClick={() => handleDecline(leave._id)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Decline
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          )}
 
-        {selectedItem === "Salary" && (
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Salary Management
-            </h2>
-            {pendingSalaryRequests.length === 0 ? (
-              <p className="text-gray-500 dark:text-gray-400">{error || "No pending salary requests."}</p>
-            ) : (
-              pendingSalaryRequests.map((request) => (
-                <div key={request._id} className="p-3 sm:p-4 border rounded-md bg-gray-50 dark:bg-gray-700 mb-4">
-                  <p className="dark:text-gray-200"><strong>Employee:</strong> {request.employeeEmail || 'N/A'}</p>
-                  <p className="dark:text-gray-200"><strong>Requested At:</strong> {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'N/A'}</p>
-                  <div className="flex gap-3 mt-3">
-                    <button
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                      onClick={() => handleSetSalary(request._id, request.employeeEmail)}
-                    >
-                      Set Salary
-                    </button>
-                  </div>
+          {selectedItem === "Salary" && (
+            <motion.div
+              key="salary"
+              className="glassmorphism p-4 sm:p-6 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Salary Management
+              </h2>
+              {error && (
+                <div className="glassmorphism text-red-700 p-3 rounded-md mb-4">
+                  {error}
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              )}
+              {pendingSalaryRequests.length === 0 ? (
+                <p className="dark:text-gray-200">{error || "No pending salary requests."}</p>
+              ) : (
+                pendingSalaryRequests.map((request) => (
+                  <motion.div
+                    key={request._id}
+                    className="glassmorphism p-3 sm:p-4 rounded-md mb-4"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <p className="dark:text-gray-200"><strong>Employee:</strong> {request.employeeEmail || 'N/A'}</p>
+                    <p className="dark:text-gray-200"><strong>Requested At:</strong> {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'N/A'}</p>
+                    <div className="flex gap-3 mt-3">
+                      <motion.button
+                        className="futuristic-button bg-blue-600 text-white px-4 py-2 rounded-md text-sm"
+                        onClick={() => handleSetSalary(request._id, request.employeeEmail)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        Set Salary
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          )}
 
-        {selectedItem === "Settings" && (
-          <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow-md">
-            <h2 className="text-xl sm:text-2xl font-bold text-blue-900 dark:text-blue-300 mb-4">
-              Settings
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400">Settings features coming soon.</p>
-          </div>
-        )}
-      </main>
+          {selectedItem === "Settings" && (
+            <motion.div
+              key="settings"
+              className="glassmorphism p-4 sm:p-6 rounded-lg"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              whileHover={{ scale: 1.02 }}
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-[var(--accent-color)] dark:text-gray-100 mb-4">
+                Settings
+              </h2>
+              <p className="dark:text-gray-200">Settings features coming soon.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.main>
     </div>
   );
 };

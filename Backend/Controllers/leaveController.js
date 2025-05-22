@@ -3,11 +3,19 @@ import User from '../Models/User.js';
 import EmployeeStats from '../Models/EmployeeStats.js';
 import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
 
+const isValidEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 export const createLeave = async (req, res) => {
   const { email, from, to, reason, oneDay } = req.body;
 
   if (!email || !from || !reason) {
     return res.status(400).json({ message: 'Email, from date, and reason are required' });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
   }
   if (!oneDay && !to) {
     return res.status(400).json({ message: 'To date is required for multi-day leaves' });
@@ -38,75 +46,74 @@ export const createLeave = async (req, res) => {
     });
 
     const autoApproveCriteria = { maxDays: 2, reason: 'casual' };
-    const days = oneDay ? 1 : (toDate - fromDate) / (1000 * 60 * 60 * 24);
+    const days = oneDay ? 1 : (toDate - fromDate) / (1000 * 60 * 60 * 24) + 1; 
     if (days <= autoApproveCriteria.maxDays && reason.toLowerCase() === autoApproveCriteria.reason) {
       leave.status = 'Approved';
     }
 
     await leave.save();
 
-    // Update EmployeeStats
     await EmployeeStats.findOneAndUpdate(
       { email },
       {
         email,
-        name: user.name,
+        name: user.name || email.split('@')[0], 
         $inc: { [leave.status === 'Approved' ? 'approved' : 'pending']: 1 },
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       },
       { upsert: true, new: true }
     );
 
     res.status(201).json({ message: 'Leave created successfully', leave });
   } catch (error) {
-    console.error('Error creating leave:', error);
-    res.status(500).json({ message: 'Failed to create leave' });
+    console.error(`Error creating leave for ${email}:`, error);
+    res.status(500).json({ message: 'Failed to create leave', error: error.message });
   }
 };
 
 export const getLeavesByEmail = async (req, res) => {
   const { email } = req.query;
 
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ message: 'Valid email is required' });
   }
 
   try {
-    const leaves = await Leave.find({ email }).sort({ createdAt: -1 });
+    const leaves = await Leave.find({ email }).sort({ createdAt: -1 }).lean();
     res.status(200).json(leaves);
   } catch (error) {
-    console.error('Error fetching leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch leaves' });
+    console.error(`Error fetching leaves for ${email}:`, error);
+    res.status(500).json({ message: 'Failed to fetch leaves', error: error.message });
   }
 };
 
 export const getAllLeaves = async (req, res) => {
   try {
-    const leaves = await Leave.find().sort({ createdAt: -1 });
+    const leaves = await Leave.find().sort({ createdAt: -1 }).lean();
     res.status(200).json(leaves);
   } catch (error) {
     console.error('Error fetching all leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch all leaves' });
+    res.status(500).json({ message: 'Failed to fetch all leaves', error: error.message });
   }
 };
 
 export const getAllPendingLeaves = async (req, res) => {
   try {
-    const pendingLeaves = await Leave.find({ status: 'Pending' }).sort({ createdAt: -1 });
+    const pendingLeaves = await Leave.find({ status: 'Pending' }).sort({ createdAt: -1 }).lean();
     res.status(200).json(pendingLeaves);
   } catch (error) {
     console.error('Error fetching pending leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch pending leaves' });
+    res.status(500).json({ message: 'Failed to fetch pending leaves', error: error.message });
   }
 };
 
 export const getAllApprovedLeaves = async (req, res) => {
   try {
-    const approvedLeaves = await Leave.find({ status: 'Approved' }).sort({ createdAt: -1 });
+    const approvedLeaves = await Leave.find({ status: 'Approved' }).sort({ createdAt: -1 }).lean();
     res.status(200).json(approvedLeaves);
   } catch (error) {
     console.error('Error fetching approved leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch approved leaves' });
+    res.status(500).json({ message: 'Failed to fetch approved leaves', error: error.message });
   }
 };
 
@@ -133,9 +140,9 @@ export const approveLeave = async (req, res) => {
         { email: leave.email },
         {
           email: leave.email,
-          name: user.name,
+          name: user.name || leave.email.split('@')[0],
           $inc: { approved: 1, pending: -1 },
-          updatedAt: Date.now(),
+          updatedAt: new Date(),
         },
         { upsert: true, new: true }
       );
@@ -143,8 +150,8 @@ export const approveLeave = async (req, res) => {
 
     res.status(200).json({ message: 'Leave approved successfully', leave });
   } catch (error) {
-    console.error('Error approving leave:', error);
-    res.status(500).json({ message: 'Failed to approve leave' });
+    console.error(`Error approving leave ${id}:`, error);
+    res.status(500).json({ message: 'Failed to approve leave', error: error.message });
   }
 };
 
@@ -176,9 +183,9 @@ export const declineLeave = async (req, res) => {
         { email: leave.email },
         {
           email: leave.email,
-          name: user.name,
+          name: user.name || leave.email.split('@')[0],
           $inc: { declined: 1, pending: -1 },
-          updatedAt: Date.now(),
+          updatedAt: new Date(),
         },
         { upsert: true, new: true }
       );
@@ -186,45 +193,46 @@ export const declineLeave = async (req, res) => {
 
     res.status(200).json({ message: 'Leave declined successfully', leave });
   } catch (error) {
-    console.error('Error declining leave:', error);
-    res.status(500).json({ message: 'Failed to decline leave' });
+    console.error(`Error declining leave ${id}:`, error);
+    res.status(500).json({ message: 'Failed to decline leave', error: error.message });
   }
 };
 
 export const getEmployeeStats = async (req, res) => {
+  console.log('Received GET /api/employee-stats'); 
   try {
-    const stats = await EmployeeStats.find().sort({ updatedAt: -1 });
+    const stats = await EmployeeStats.find().sort({ updatedAt: -1 }).lean();
     res.status(200).json(stats);
   } catch (error) {
     console.error('Error fetching employee stats:', error);
-    res.status(500).json({ message: 'Failed to fetch employee stats' });
+    res.status(500).json({ message: 'Failed to fetch employee stats', error: error.message });
   }
 };
 
 export const getLeaveRecommendations = async (req, res) => {
   const { email } = req.query;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ message: 'Valid email is required' });
   }
   try {
     const recommendations = await recommendLeaveDays(email);
     res.status(200).json(recommendations);
   } catch (error) {
-    console.error('Error fetching recommendations:', error);
-    res.status(500).json({ message: 'Failed to fetch recommendations' });
+    console.error(`Error fetching recommendations for ${email}:`, error);
+    res.status(500).json({ message: 'Failed to fetch recommendations', error: error.message });
   }
 };
 
 export const getLeavePatterns = async (req, res) => {
   const { email } = req.query;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  if (!email || !isValidEmail(email)) {
+    return res.status(400).json({ message: 'Valid email is required' });
   }
   try {
     const patterns = await analyzeLeavePatterns(email);
     res.status(200).json(patterns);
   } catch (error) {
-    console.error('Error fetching leave patterns:', error);
-    res.status(500).json({ message: 'Failed to fetch leave patterns' });
+    console.error(`Error fetching leave patterns for ${email}:`, error);
+    res.status(500).json({ message: 'Failed to fetch leave patterns', error: error.message });
   }
 };

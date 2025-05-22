@@ -7,8 +7,8 @@ import helmet from 'helmet';
 import connectDB from './db/connection.js';
 import registerRoutes from './Routes/registerRoutes.js';
 import leaveRoutes from './Routes/leaveRoutes.js';
-import salaryRequestRoutes from './Routes/salaryRequestRoutes.js'; 
-import userRoutes from './Routes/AuthRouter.js'; 
+import salaryRequestRoutes from './Routes/salaryRequestRoutes.js';
+import userRoutes from './Routes/AuthRouter.js';
 
 dotenv.config();
 
@@ -17,23 +17,37 @@ const PORT = process.env.PORT || 5000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-app.use(helmet()); 
-app.use(cors({ 
+app.use(helmet());
+app.use(cors({
   origin: CORS_ORIGIN,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
-app.use(morgan(NODE_ENV === 'development' ? 'dev' : 'combined')); 
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan(NODE_ENV === 'development' ? 'dev' : 'combined'));
 
-app.use('/api', registerRoutes); 
+app.use('/api', registerRoutes);
 app.use('/api', userRoutes);
-app.use('/api/leaves', leaveRoutes); 
-app.use('/api/salary-requests', salaryRequestRoutes); 
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/salary-requests', salaryRequestRoutes);
 
 app.get('/ping', (req, res) => {
-  res.status(200).json({ message: 'PONG', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    message: 'PONG',
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV,
+  });
+});
+
+app.use((req, res) => {
+  console.warn(`404 Not Found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    message: 'Route not found',
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use((err, req, res, next) => {
@@ -66,6 +80,12 @@ connectDB()
       console.log(`Server is running at http://localhost:${PORT}`);
       console.log(`CORS enabled for ${CORS_ORIGIN}`);
       console.log(`Environment: ${NODE_ENV}`);
+      console.log('Mounted routes:');
+      console.log('  - /api (registerRoutes)');
+      console.log('  - /api (userRoutes)');
+      console.log('  - /api/leaves (leaveRoutes)');
+      console.log('  - /api/salary-requests (salaryRequestRoutes)');
+      console.log('  - /ping');
     });
 
     process.on('SIGTERM', () => {
