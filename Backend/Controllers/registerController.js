@@ -1,7 +1,6 @@
 import User from '../Models/User.js';
 import bcrypt from 'bcryptjs';
 
-// Register a new user
 const registerUser = async (req, res) => {
   const { name, email, password, position, department, phone } = req.body;
   try {
