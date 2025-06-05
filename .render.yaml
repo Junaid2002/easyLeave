@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: easyleave-backend
+    env: node
+    repo: https://github.com/Junaid2002/easyLeave
+    branch: main
+    buildCommand: cd Backend && npm install
+    startCommand: cd Backend && node index.js
+    plan: free
+    autoDeploy: true
+    include:
+      - Backend/models/*.js
