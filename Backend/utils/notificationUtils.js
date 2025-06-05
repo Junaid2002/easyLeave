@@ -1,4 +1,4 @@
-import Leave from '../Models/leave.js';
+import Leave from '../Models/Leave.js';
 
 export const recommendLeaveDays = async (email) => {
   const leaves = await Leave.find({ email });
