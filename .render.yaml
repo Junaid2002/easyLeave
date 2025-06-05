@@ -9,4 +9,4 @@ services:
     plan: free
     autoDeploy: true
     include:
-      - Backend/**/*.js
+      - Backend/**  # Include all files in Backend and subdirectories
