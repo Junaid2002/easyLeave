@@ -1,6 +1,6 @@
-import Leave from '../Models/Leave.js';
+import Leave from '../models/Leave.js';
 import User from '../Models/User.js';
-import EmployeeStats from '../Models/EmployeeStats.js';
+import EmployeeStats from '../models/EmployeeStats.js';
 import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
 
 const isValidEmail = (email) => {
@@ -46,7 +46,7 @@ export const createLeave = async (req, res) => {
     });
 
     const autoApproveCriteria = { maxDays: 2, reason: 'casual' };
-    const days = oneDay ? 1 : (toDate - fromDate) / (1000 * 60 * 60 * 24) + 1; 
+    const days = oneDay ? 1 : (toDate - fromDate) / (1000 * 60 * 60 * 24) + 1;
     if (days <= autoApproveCriteria.maxDays && reason.toLowerCase() === autoApproveCriteria.reason) {
       leave.status = 'Approved';
     }
@@ -57,7 +57,7 @@ export const createLeave = async (req, res) => {
       { email },
       {
         email,
-        name: user.name || email.split('@')[0], 
+        name: user.name || email.split('@')[0],
         $inc: { [leave.status === 'Approved' ? 'approved' : 'pending']: 1 },
         updatedAt: new Date(),
       },
@@ -199,7 +199,6 @@ export const declineLeave = async (req, res) => {
 };
 
 export const getEmployeeStats = async (req, res) => {
-  console.log('Received GET /api/employee-stats'); 
   try {
     const stats = await EmployeeStats.find().sort({ updatedAt: -1 }).lean();
     res.status(200).json(stats);
