@@ -1,5 +1,5 @@
-import SalaryRequest from '../Models/SalaryRequest.js';
-import User from '../Models/User.js';
+import SalaryRequest from '../models/SalaryRequest.js';
+import User from '../models/User.js';
 
 export const createSalaryRequest = async (req, res) => {
   const { employeeEmail } = req.body;
