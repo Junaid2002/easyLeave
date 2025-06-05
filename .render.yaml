@@ -4,9 +4,9 @@ services:
     env: node
     repo: https://github.com/Junaid2002/easyLeave
     branch: main
-    buildCommand: cd Backend && npm install
-    startCommand: cd Backend && node index.js
+    buildCommand: cd Backend && npm install && ls -la models/
+    startCommand: cd Backend && ls -la models/ && node index.js
     plan: free
     autoDeploy: true
     include:
-      - Backend/models/*.js
+      - Backend/**/*.js
