@@ -6,12 +6,10 @@ services:
     branch: main
     buildCommand: |
       cd Backend
-      cat .nvmrc || echo ".nvmrc missing"
       npm install
       ls -la models/
     startCommand: |
       cd Backend
-      ls -la models/
       node index.js
     plan: free
     autoDeploy: true
