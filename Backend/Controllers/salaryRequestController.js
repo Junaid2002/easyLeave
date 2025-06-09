@@ -1,7 +1,8 @@
-import SalaryRequest from '../models/SalaryRequest.js';
-import User from '../models/User.js';
+const SalaryRequest = require('../models/SalaryRequest');
+const User = require('../models/User');
 
-export const createSalaryRequest = async (req, res) => {
+// Create a new salary request
+const createSalaryRequest = async (req, res) => {
   const { employeeEmail } = req.body;
 
   try {
@@ -14,6 +15,7 @@ export const createSalaryRequest = async (req, res) => {
       employeeEmail,
       status: 'pending',
     });
+
     if (existingRequest) {
       return res.status(400).json({ message: 'A pending salary request already exists' });
     }
@@ -28,7 +30,8 @@ export const createSalaryRequest = async (req, res) => {
   }
 };
 
-export const getSalaryStatus = async (req, res) => {
+// Get salary status for an employee
+const getSalaryStatus = async (req, res) => {
   const { email } = req.query;
 
   try {
@@ -50,7 +53,8 @@ export const getSalaryStatus = async (req, res) => {
   }
 };
 
-export const getPendingSalaryRequests = async (req, res) => {
+// Get all pending salary requests
+const getPendingSalaryRequests = async (req, res) => {
   try {
     const pendingRequests = await SalaryRequest.find({ status: 'pending' });
     res.status(200).json(pendingRequests);
@@ -60,19 +64,29 @@ export const getPendingSalaryRequests = async (req, res) => {
   }
 };
 
-export const approveSalaryRequest = async (req, res) => {
+// Approve a salary request
+const approveSalaryRequest = async (req, res) => {
   try {
     const request = await SalaryRequest.findByIdAndUpdate(
       req.params.id,
       { status: 'approved' },
       { new: true }
     );
+
     if (!request) {
       return res.status(404).json({ message: 'Salary request not found' });
     }
+
     res.status(200).json({ message: 'Salary request approved', request });
   } catch (error) {
     console.error('Error approving salary request:', error);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+module.exports = {
+  createSalaryRequest,
+  getSalaryStatus,
+  getPendingSalaryRequests,
+  approveSalaryRequest
 };

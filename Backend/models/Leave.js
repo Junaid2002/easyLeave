@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const leaveSchema = new mongoose.Schema(
   {
@@ -84,4 +84,4 @@ leaveSchema.index({ status: 1 });
 leaveSchema.index({ createdAt: -1 });
 leaveSchema.index({ email: 1, status: 1 });
 
-export default mongoose.models.Leave || mongoose.model('Leave', leaveSchema);
+module.exports = mongoose.models.Leave || mongoose.model('Leave', leaveSchema);

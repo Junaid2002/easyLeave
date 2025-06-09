@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const salaryRequestSchema = new mongoose.Schema({
   employeeEmail: {
@@ -19,4 +19,4 @@ const salaryRequestSchema = new mongoose.Schema({
 
 const SalaryRequest = mongoose.model('SalaryRequest', salaryRequestSchema);
 
-export default SalaryRequest;
+module.exports = SalaryRequest;

@@ -1,11 +1,11 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import {
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const {
   createSalaryRequest,
   getSalaryStatus,
   getPendingSalaryRequests,
   approveSalaryRequest,
-} from '../Controllers/salaryRequestController.js';
+} = require('../Controllers/salaryRequestController');
 
 const router = express.Router();
 
@@ -40,4 +40,4 @@ router.get('/pending', authMiddleware, adminMiddleware, getPendingSalaryRequests
 
 router.put('/approve/:id', authMiddleware, adminMiddleware, approveSalaryRequest);
 
-export default router;
+module.exports = router;

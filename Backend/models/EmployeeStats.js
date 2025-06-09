@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const employeeStatsSchema = new mongoose.Schema(
   {
@@ -36,11 +36,11 @@ const employeeStatsSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: false, 
+    timestamps: false,
     toJSON: { virtuals: false, versionKey: false },
   }
 );
 
 employeeStatsSchema.index({ email: 1 });
 
-export default mongoose.model('EmployeeStats', employeeStatsSchema);
+module.exports = mongoose.model('EmployeeStats', employeeStatsSchema);

@@ -1,14 +1,11 @@
-import Leave from '../models/Leave.js';
-import User from "../models/User.js"; 
-import EmployeeStats from '../models/EmployeeStats.js';
-import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
+const Leave = require('../models/Leave');
+const User = require('../models/User');
+const EmployeeStats = require('../models/EmployeeStats');
+const { recommendLeaveDays, analyzeLeavePatterns } = require('../utils/notificationUtils');
 
-const isValidEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-export const createLeave = async (req, res) => {
+exports.createLeave = async (req, res) => {
   const { email, from, to, reason, oneDay } = req.body;
 
   if (!email || !from || !reason) {
@@ -22,7 +19,6 @@ export const createLeave = async (req, res) => {
   }
 
   try {
-   
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -30,11 +26,8 @@ export const createLeave = async (req, res) => {
 
     const fromDate = new Date(from);
     const toDate = oneDay ? fromDate : new Date(to);
-    if (isNaN(fromDate.getTime())) {
-      return res.status(400).json({ message: 'Invalid from date format. Expected format: YYYY-MM-DD' });
-    }
-    if (!oneDay && (isNaN(toDate.getTime()) || !to)) {
-      return res.status(400).json({ message: 'Invalid to date format. Expected format: YYYY-MM-DD' });
+    if (isNaN(fromDate.getTime()) || (!oneDay && isNaN(toDate.getTime()))) {
+      return res.status(400).json({ message: 'Invalid date format. Expected format: YYYY-MM-DD' });
     }
     if (!oneDay && toDate < fromDate) {
       return res.status(400).json({ message: 'To date must be on or after from date' });
@@ -65,7 +58,7 @@ export const createLeave = async (req, res) => {
       { email },
       {
         email,
-        name: user.name || email.split('@')[0], 
+        name: user.name || email.split('@')[0],
         $inc: { [leave.status === 'Approved' ? 'approved' : 'pending']: 1 },
         updatedAt: new Date(),
       },
@@ -76,19 +69,17 @@ export const createLeave = async (req, res) => {
   } catch (error) {
     console.error(`Error creating leave for ${email}:`, error);
     if (error.name === 'ValidationError') {
-     
       const messages = Object.values(error.errors).map(err => err.message).join(', ');
       return res.status(400).json({ message: `Validation failed: ${messages}`, error: error.message });
     }
     if (error.name === 'MongoServerError' && error.code === 11000) {
-     
       return res.status(400).json({ message: 'Duplicate entry detected', error: error.message });
     }
     res.status(500).json({ message: 'Failed to create leave due to server error', error: error.message });
   }
 };
 
-export const getLeavesByEmail = async (req, res) => {
+exports.getLeavesByEmail = async (req, res) => {
   const { email } = req.query;
 
   if (!email || !isValidEmail(email)) {
@@ -100,41 +91,41 @@ export const getLeavesByEmail = async (req, res) => {
     res.status(200).json(leaves);
   } catch (error) {
     console.error(`Error fetching leaves for ${email}:`, error);
-    res.status(500).json({ message: 'Failed to fetch leaves due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch leaves', error: error.message });
   }
 };
 
-export const getAllLeaves = async (req, res) => {
+exports.getAllLeaves = async (req, res) => {
   try {
     const leaves = await Leave.find().sort({ createdAt: -1 }).lean();
     res.status(200).json(leaves);
   } catch (error) {
     console.error('Error fetching all leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch all leaves due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch all leaves', error: error.message });
   }
 };
 
-export const getAllPendingLeaves = async (req, res) => {
+exports.getAllPendingLeaves = async (req, res) => {
   try {
     const pendingLeaves = await Leave.find({ status: 'Pending' }).sort({ createdAt: -1 }).lean();
     res.status(200).json(pendingLeaves);
   } catch (error) {
     console.error('Error fetching pending leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch pending leaves due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch pending leaves', error: error.message });
   }
 };
 
-export const getAllApprovedLeaves = async (req, res) => {
+exports.getAllApprovedLeaves = async (req, res) => {
   try {
     const approvedLeaves = await Leave.find({ status: 'Approved' }).sort({ createdAt: -1 }).lean();
     res.status(200).json(approvedLeaves);
   } catch (error) {
     console.error('Error fetching approved leaves:', error);
-    res.status(500).json({ message: 'Failed to fetch approved leaves due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch approved leaves', error: error.message });
   }
 };
 
-export const approveLeave = async (req, res) => {
+exports.approveLeave = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -168,11 +159,11 @@ export const approveLeave = async (req, res) => {
     res.status(200).json({ message: 'Leave approved successfully', leave });
   } catch (error) {
     console.error(`Error approving leave ${id}:`, error);
-    res.status(500).json({ message: 'Failed to approve leave due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to approve leave', error: error.message });
   }
 };
 
-export const declineLeave = async (req, res) => {
+exports.declineLeave = async (req, res) => {
   const { id } = req.params;
   const { declineReason } = req.body;
 
@@ -211,21 +202,21 @@ export const declineLeave = async (req, res) => {
     res.status(200).json({ message: 'Leave declined successfully', leave });
   } catch (error) {
     console.error(`Error declining leave ${id}:`, error);
-    res.status(500).json({ message: 'Failed to decline leave due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to decline leave', error: error.message });
   }
 };
 
-export const getEmployeeStats = async (req, res) => {
+exports.getEmployeeStats = async (req, res) => {
   try {
     const stats = await EmployeeStats.find().sort({ updatedAt: -1 }).lean();
     res.status(200).json(stats);
   } catch (error) {
     console.error('Error fetching employee stats:', error);
-    res.status(500).json({ message: 'Failed to fetch employee stats due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch employee stats', error: error.message });
   }
 };
 
-export const getLeaveRecommendations = async (req, res) => {
+exports.getLeaveRecommendations = async (req, res) => {
   const { email } = req.query;
   if (!email || !isValidEmail(email)) {
     return res.status(400).json({ message: 'Valid email is required' });
@@ -235,11 +226,11 @@ export const getLeaveRecommendations = async (req, res) => {
     res.status(200).json(recommendations);
   } catch (error) {
     console.error(`Error fetching recommendations for ${email}:`, error);
-    res.status(500).json({ message: 'Failed to fetch recommendations due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch recommendations', error: error.message });
   }
 };
 
-export const getLeavePatterns = async (req, res) => {
+exports.getLeavePatterns = async (req, res) => {
   const { email } = req.query;
   if (!email || !isValidEmail(email)) {
     return res.status(400).json({ message: 'Valid email is required' });
@@ -249,6 +240,6 @@ export const getLeavePatterns = async (req, res) => {
     res.status(200).json(patterns);
   } catch (error) {
     console.error(`Error fetching leave patterns for ${email}:`, error);
-    res.status(500).json({ message: 'Failed to fetch leave patterns due to server error', error: error.message });
+    res.status(500).json({ message: 'Failed to fetch leave patterns', error: error.message });
   }
 };

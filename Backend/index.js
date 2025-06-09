@@ -1,14 +1,14 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import morgan from 'morgan';
-import mongoose from 'mongoose';
-import helmet from 'helmet';
-import connectDB from './db/connection.js';
-import registerRoutes from './Routes/registerRoutes.js';
-import leaveRoutes from './Routes/leaveRoutes.js';
-import salaryRequestRoutes from './Routes/salaryRequestRoutes.js'; 
-import userRoutes from './Routes/AuthRouter.js'; 
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const morgan = require('morgan');
+const mongoose = require('mongoose');
+const helmet = require('helmet');
+const connectDB = require('./db/connection');
+const registerRoutes = require('./Routes/registerRoutes');
+const leaveRoutes = require('./Routes/leaveRoutes');
+const salaryRequestRoutes = require('./Routes/salaryRequestRoutes');
+const userRoutes = require('./Routes/AuthRouter');
 
 dotenv.config();
 
@@ -17,20 +17,20 @@ const PORT = process.env.PORT || 5000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-app.use(helmet()); 
-app.use(cors({ 
+app.use(helmet());
+app.use(cors({
   origin: CORS_ORIGIN,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
-app.use(morgan(NODE_ENV === 'development' ? 'dev' : 'combined')); 
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan(NODE_ENV === 'development' ? 'dev' : 'combined'));
 
-app.use('/api', registerRoutes); 
+app.use('/api', registerRoutes);
 app.use('/api', userRoutes);
-app.use('/api/leaves', leaveRoutes); 
-app.use('/api/salary-requests', salaryRequestRoutes); 
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/salary-requests', salaryRequestRoutes);
 
 app.get('/ping', (req, res) => {
   res.status(200).json({ message: 'PONG', timestamp: new Date().toISOString() });

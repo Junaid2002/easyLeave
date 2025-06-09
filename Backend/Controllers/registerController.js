@@ -1,6 +1,7 @@
-import User from '../models/User.js';
-import bcrypt from 'bcryptjs';
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
+// Register a new user
 const registerUser = async (req, res) => {
   const { name, email, password, position, department, phone } = req.body;
   try {
@@ -8,6 +9,7 @@ const registerUser = async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({
       name,
@@ -17,6 +19,7 @@ const registerUser = async (req, res) => {
       department: department || 'N/A',
       phone: phone || 'N/A'
     });
+
     await user.save();
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
@@ -33,10 +36,12 @@ const loginUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
     res.json({ message: 'Login successful', user: { email: user.email, name: user.name } });
   } catch (error) {
     console.error('Error logging in user:', error);
@@ -62,4 +67,8 @@ const getUserByEmail = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, getUserByEmail };
+module.exports = {
+  registerUser,
+  loginUser,
+  getUserByEmail
+};
