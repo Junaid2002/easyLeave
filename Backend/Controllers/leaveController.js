@@ -1,6 +1,6 @@
-import Leave from '../models/Leave.js';
-import User from '../models/User.js';
-import EmployeeStats from '../models/EmployeeStats.js';
+import Leave from '../Models/Leave.js';
+import User from '../Models/User.js';
+import EmployeeStats from '../Models/EmployeeStats.js';
 import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
 
 const isValidEmail = (email) => {
