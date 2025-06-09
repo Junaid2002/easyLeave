@@ -9,7 +9,7 @@ import { BsSun, BsMoon } from 'react-icons/bs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
+import moment from 'moment-timezone'; // Updated to use moment-timezone for IST
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 const menuItems = [
@@ -36,6 +36,7 @@ const StatusDot = ({ status }) => {
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       transition={{ duration: 0.3 }}
+      aria-label={`Status: ${status}`}
     />
   );
 };
@@ -48,6 +49,7 @@ const TeacherDashboard = () => {
   const [leaveFromDate, setLeaveFromDate] = useState('');
   const [leaveToDate, setLeaveToDate] = useState('');
   const [leaveReason, setLeaveReason] = useState('');
+  const [formErrors, setFormErrors] = useState({}); // Added for form validation feedback
   const [leaves, setLeaves] = useState([]);
   const [oneDay, setOneDay] = useState(false);
   const [userDetails, setUserDetails] = useState(null);
@@ -58,6 +60,7 @@ const TeacherDashboard = () => {
   const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'blue');
   const [leavePatterns, setLeavePatterns] = useState([]);
   const [recommendedDays, setRecommendedDays] = useState([]);
+  const [salaryDetails, setSalaryDetails] = useState(null); // Added for dynamic salary data
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -86,8 +89,6 @@ const TeacherDashboard = () => {
   }, [accentColor]);
 
   const fetchLeaves = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const endpoint = isAdmin
         ? 'http://localhost:5000/api/leaves'
@@ -102,20 +103,16 @@ const TeacherDashboard = () => {
       setStats({ pending, approved, declined });
 
       const events = leaveData.map((leave) => ({
-        title: `${leave.email} - ${leave.reason}`,
-        start: new Date(leave.from),
-        end: leave.oneDay ? new Date(leave.from) : new Date(leave.to),
+        title: `${userDetails?.name || leave.email} - ${leave.reason}`, // Improved event title
+        start: moment(leave.from).tz('Asia/Kolkata').toDate(), // Adjusted for IST
+        end: leave.oneDay ? moment(leave.from).tz('Asia/Kolkata').toDate() : moment(leave.to).tz('Asia/Kolkata').toDate(),
         allDay: true,
         resource: leave,
       }));
       setCalendarEvents(events);
     } catch (error) {
       console.error('Error fetching leaves:', error);
-      setError(error.response?.status === 404
-        ? 'Leave endpoint not found. Contact your administrator.'
-        : 'Failed to load leaves. Please try again.');
-    } finally {
-      setLoading(false);
+      setError(error.response?.data?.message || 'Failed to load leaves. Please try again.');
     }
   };
 
@@ -128,6 +125,7 @@ const TeacherDashboard = () => {
     } catch (error) {
       console.error('Error fetching user details:', error);
       setIsAdmin(false);
+      setError(error.response?.data?.message || 'Failed to load user details. Please try again.');
     }
   };
 
@@ -137,9 +135,7 @@ const TeacherDashboard = () => {
       setLeavePatterns(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error('Error fetching leave patterns:', error);
-      setError(error.response?.status === 404
-        ? 'Leave patterns endpoint not found. Contact your administrator.'
-        : 'Failed to load leave patterns. Please try again.');
+      setError(error.response?.data?.message || 'Failed to load leave patterns. Please try again.');
     }
   };
 
@@ -149,48 +145,86 @@ const TeacherDashboard = () => {
       setRecommendedDays(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error('Error fetching recommended days:', error);
-      setError(error.response?.status === 404
-        ? 'Recommendations endpoint not found. Contact your administrator.'
-        : 'Failed to load recommended days. Please try again.');
+      setError(error.response?.data?.message || 'Failed to load recommended days. Please try again.');
+    }
+  };
+
+  const fetchSalaryDetails = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/salary?email=${encodeURIComponent(userEmail)}`);
+      setSalaryDetails(res.data || {});
+    } catch (error) {
+      console.error('Error fetching salary details:', error);
+      setError(error.response?.data?.message || 'Failed to load salary details. Please try again.');
     }
   };
 
   useEffect(() => {
-    fetchLeaves();
-    fetchUserDetails();
-    fetchLeavePatterns();
-    fetchRecommendedDays();
+    const fetchAllData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await Promise.all([
+          fetchLeaves(),
+          fetchUserDetails(),
+          fetchLeavePatterns(),
+          fetchRecommendedDays(),
+          fetchSalaryDetails(),
+        ]);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setError('Failed to load initial data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAllData();
   }, [isAdmin, userEmail]);
 
-  const handleSubmit = async () => {
-    if (!leaveFromDate || !leaveReason) {
-      alert('Please fill in the From date and Reason fields');
-      return;
+  const validateForm = () => {
+    const errors = {};
+    if (!leaveFromDate) {
+      errors.fromDate = 'From date is required';
+    }
+    if (!leaveReason) {
+      errors.reason = 'Reason is required';
     }
     if (!oneDay && !leaveToDate) {
-      alert('Please fill in the To date for multi-day leaves');
+      errors.toDate = 'To date is required for multi-day leaves';
+    }
+
+    const fromDate = leaveFromDate ? moment(leaveFromDate).tz('Asia/Kolkata').toDate() : null;
+    const toDate = oneDay ? fromDate : leaveToDate ? moment(leaveToDate).tz('Asia/Kolkata').toDate() : null;
+    const today = moment().tz('Asia/Kolkata').startOf('day').toDate();
+
+    if (fromDate && isNaN(fromDate.getTime())) {
+      errors.fromDate = 'Invalid from date format';
+    }
+    if (!oneDay && toDate && isNaN(toDate.getTime())) {
+      errors.toDate = 'Invalid to date format';
+    }
+    if (fromDate && fromDate < today) {
+      errors.fromDate = 'From date cannot be in the past';
+    }
+    if (!oneDay && fromDate && toDate && toDate < fromDate) {
+      errors.toDate = 'To date must be after From date';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       return;
     }
 
-    const fromDate = new Date(leaveFromDate);
-    const toDate = oneDay ? fromDate : new Date(leaveToDate);
-    const today = new Date().setHours(0, 0, 0, 0);
-    if (isNaN(fromDate.getTime()) || (!oneDay && isNaN(toDate.getTime()))) {
-      alert('Invalid date format');
-      return;
-    }
-    if (fromDate < today) {
-      alert('From date cannot be in the past');
-      return;
-    }
-    if (!oneDay && toDate < fromDate) {
-      alert('To date must be after From date');
-      return;
-    }
+    const fromDate = moment(leaveFromDate).tz('Asia/Kolkata').toDate();
+    const toDate = oneDay ? fromDate : moment(leaveToDate).tz('Asia/Kolkata').toDate();
 
     const newLeave = {
-      from: fromDate.toISOString().split('T')[0],
-      to: oneDay ? fromDate.toISOString().split('T')[0] : toDate.toISOString().split('T')[0],
+      from: moment(fromDate).format('YYYY-MM-DD'),
+      to: moment(toDate).format('YYYY-MM-DD'),
       reason: leaveReason,
       oneDay,
       email: userEmail,
@@ -205,11 +239,12 @@ const TeacherDashboard = () => {
       setLeaveToDate('');
       setLeaveReason('');
       setOneDay(false);
+      setFormErrors({});
       await fetchLeaves();
       await fetchRecommendedDays();
     } catch (error) {
       console.error('Error submitting leave:', error);
-      alert(`Failed to submit leave: ${error.response?.data?.message || 'Unknown error'}`);
+      setError(error.response?.data?.message || 'Failed to submit leave. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -281,6 +316,11 @@ const TeacherDashboard = () => {
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
             transform: translateY(-2px);
           }
+          .error-text {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+          }
           * {
             font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
           }
@@ -304,7 +344,7 @@ const TeacherDashboard = () => {
         <div className="flex items-center justify-between p-4 h-20">
           <motion.img
             src="/aju.jpg"
-            alt="logo"
+            alt="Logo"
             className={`transition-all duration-300 ${open ? 'w-10' : 'w-0'} rounded-md`}
             initial={{ width: 0 }}
             animate={{ width: open ? 40 : 0 }}
@@ -314,6 +354,7 @@ const TeacherDashboard = () => {
             color="white"
             onClick={() => setOpen(!open)}
             className="cursor-pointer"
+            aria-label="Toggle navigation menu"
           />
         </div>
         <ul className="flex-1 space-y-2 mt-4">
@@ -324,6 +365,7 @@ const TeacherDashboard = () => {
               className="flex items-center gap-3 text-white px-4 py-3 hover:bg-[var(--accent-color)]/80 dark:hover:bg-gray-700 cursor-pointer"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              role="menuitem"
             >
               <div>{item.icons}</div>
               <motion.span
@@ -337,7 +379,7 @@ const TeacherDashboard = () => {
           ))}
         </ul>
         <div className="px-4 py-3 text-white flex items-center gap-3">
-          <CgProfile size={23} />
+          <CgProfile size={23} aria-hidden="true" />
           <motion.span
             className={`${open ? 'inline' : 'hidden'}`}
             initial={{ opacity: 0 }}
@@ -354,8 +396,10 @@ const TeacherDashboard = () => {
           }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          role="button"
+          aria-label="Logout"
         >
-          <IoIosLogOut size={23} />
+          <IoIosLogOut size={23} aria-hidden="true" />
           <motion.span
             className={`${open ? 'inline' : 'hidden'}`}
             initial={{ opacity: 0 }}
@@ -378,6 +422,7 @@ const TeacherDashboard = () => {
             className="futuristic-button text-[var(--accent-color)] dark:text-gray-200 bg-[var(--glass-bg)] p-2 rounded-full"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
           >
             {theme === 'light' ? <BsMoon size={20} /> : <BsSun size={20} />}
           </motion.button>
@@ -387,6 +432,7 @@ const TeacherDashboard = () => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             disabled={loading}
+            aria-label="Refresh leave data"
           >
             <MdRefresh size={20} className={loading ? 'animate-spin' : ''} />
           </motion.button>
@@ -542,8 +588,8 @@ const TeacherDashboard = () => {
                           <div className="dark:text-gray-200">
                             <strong>Dates:</strong>{' '}
                             {leave.oneDay
-                              ? new Date(leave.from).toLocaleDateString()
-                              : `${new Date(leave.from).toLocaleDateString()} to ${new Date(leave.to).toLocaleDateString()}`}
+                              ? moment(leave.from).tz('Asia/Kolkata').format('LL')
+                              : `${moment(leave.from).tz('Asia/Kolkata').format('LL')} to ${moment(leave.to).tz('Asia/Kolkata').format('LL')}`}
                           </div>
                           <div className="dark:text-gray-200">
                             <strong>Reason:</strong> {leave.reason}
@@ -588,7 +634,7 @@ const TeacherDashboard = () => {
                   {recommendedDays.length > 0 ? (
                     <ul className="list-disc pl-5 dark:text-gray-200">
                       {recommendedDays.map((day, idx) => (
-                        <li key={idx}>{new Date(day).toLocaleDateString()}</li>
+                        <li key={idx}>{moment(day).tz('Asia/Kolkata').format('LL')}</li>
                       ))}
                     </ul>
                   ) : (
@@ -596,9 +642,12 @@ const TeacherDashboard = () => {
                   )}
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold dark:text-gray-200">Leave From:</label>
+                  <label htmlFor="leaveFromDate" className="block mb-1 font-semibold dark:text-gray-200">
+                    Leave From:
+                  </label>
                   <input
                     type="date"
+                    id="leaveFromDate"
                     value={leaveFromDate}
                     onChange={(e) => {
                       setLeaveFromDate(e.target.value);
@@ -606,18 +655,33 @@ const TeacherDashboard = () => {
                     }}
                     className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     required
+                    aria-describedby={formErrors.fromDate ? 'fromDate-error' : undefined}
                   />
+                  {formErrors.fromDate && (
+                    <p id="fromDate-error" className="error-text">
+                      {formErrors.fromDate}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold dark:text-gray-200">Leave To:</label>
+                  <label htmlFor="leaveToDate" className="block mb-1 font-semibold dark:text-gray-200">
+                    Leave To:
+                  </label>
                   <input
                     type="date"
+                    id="leaveToDate"
                     value={leaveToDate}
                     onChange={(e) => setLeaveToDate(e.target.value)}
                     disabled={oneDay}
                     className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     required={!oneDay}
+                    aria-describedby={formErrors.toDate ? 'toDate-error' : undefined}
                   />
+                  {formErrors.toDate && (
+                    <p id="toDate-error" className="error-text">
+                      {formErrors.toDate}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -633,14 +697,23 @@ const TeacherDashboard = () => {
                   <label htmlFor="oneDay" className="dark:text-gray-200">One Day Leave</label>
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold dark:text-gray-200">Reason:</label>
+                  <label htmlFor="leaveReason" className="block mb-1 font-semibold dark:text-gray-200">
+                    Reason:
+                  </label>
                   <textarea
+                    id="leaveReason"
                     value={leaveReason}
                     onChange={(e) => setLeaveReason(e.target.value)}
                     className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
                     rows="4"
                     required
+                    aria-describedby={formErrors.reason ? 'reason-error' : undefined}
                   />
+                  {formErrors.reason && (
+                    <p id="reason-error" className="error-text">
+                      {formErrors.reason}
+                    </p>
+                  )}
                 </div>
                 <motion.button
                   onClick={handleSubmit}
@@ -666,28 +739,34 @@ const TeacherDashboard = () => {
               whileHover={{ scale: 1.02 }}
             >
               <h2 className="text-2xl font-bold mb-4 text-[var(--accent-color)] dark:text-gray-100">Salary Details</h2>
-              <div className="space-y-3 dark:text-gray-200">
-                <div className="flex justify-between">
-                  <span>Basic Pay:</span>
-                  <span>₹30,000</span>
+              {salaryDetails ? (
+                <div className="space-y-3 dark:text-gray-200">
+                  <div className="flex justify-between">
+                    <span>Basic Pay:</span>
+                    <span>₹{salaryDetails.basicPay?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>HRA:</span>
+                    <span>₹{salaryDetails.hra?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Allowances:</span>
+                    <span>₹{salaryDetails.allowances?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>₹{salaryDetails.total?.toLocaleString() || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Month:</span>
+                    <span>{salaryDetails.month || 'N/A'}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>HRA:</span>
-                  <span>₹10,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Allowances:</span>
-                  <span>₹5,000</span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span>Total:</span>
-                  <span>₹45,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Month:</span>
-                  <span>April 2025</span>
-                </div>
-              </div>
+              ) : loading ? (
+                <p className="dark:text-gray-200">Loading salary details...</p>
+              ) : (
+                <p className="dark:text-gray-200">No salary details available.</p>
+              )}
             </motion.div>
           )}
 
@@ -739,8 +818,11 @@ const TeacherDashboard = () => {
               <h2 className="text-2xl font-bold mb-4 text-[var(--accent-color)] dark:text-gray-100">Settings</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block mb-1 font-semibold dark:text-gray-200">Theme Color:</label>
+                  <label htmlFor="themeColor" className="block mb-1 font-semibold dark:text-gray-200">
+                    Theme Color:
+                  </label>
                   <select
+                    id="themeColor"
                     value={accentColor}
                     onChange={(e) => setAccentColor(e.target.value)}
                     className="w-full p-3 border rounded-md dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
