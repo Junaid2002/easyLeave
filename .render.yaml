@@ -1,12 +1,19 @@
 services:
   - type: web
     name: easyleave-backend
-    env: node
+    env: node:18.20.2
     repo: https://github.com/Junaid2002/easyLeave
     branch: main
-    buildCommand: cd Backend && npm install && ls -la models/
-    startCommand: cd Backend && ls -la models/ && node index.js
+    buildCommand: |
+      cd Backend
+      cat .nvmrc || echo ".nvmrc missing"
+      npm install
+      ls -la models/
+    startCommand: |
+      cd Backend
+      ls -la models/
+      node index.js
     plan: free
     autoDeploy: true
     include:
-      - Backend/**  # Include all files in Backend and subdirectories
+      - Backend/**
