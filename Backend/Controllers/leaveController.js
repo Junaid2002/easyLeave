@@ -1,4 +1,4 @@
-import Leave from '..models/User.js';
+import Leave from '../models/User.js';
 import EmployeeStats from '../models/EmployeeStats.js';
 import { recommendLeaveDays, analyzeLeavePatterns } from '../utils/notificationUtils.js';
 
